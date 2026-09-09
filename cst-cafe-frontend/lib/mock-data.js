@@ -97,10 +97,9 @@ export const sampleOrder = {
   table: "Table 3",
   time: "12:15 PM",
   items: [
-    { name: "Chicken Momo (10 pcs)", qty: 1 },
-    { name: "Milk Tea", qty: 2 },
+    { id: "m2", name: "Chicken Momo (10 pcs)", qty: 1, price: 100 },
+    { id: "m7", name: "Milk Tea", qty: 2, price: 15 },
   ],
-  total: 130,
 };
 
 // Bookings/orders queue as staff would see it on the dashboard.
@@ -118,3 +117,12 @@ export const statusStyles = {
   ready: { label: "Ready", className: "bg-ready/15 text-ready" },
   delayed: { label: "Delayed", className: "bg-delayed/15 text-delayed" },
 };
+
+// Anonymous customer feedback — no name or order is attached to any entry.
+export const feedbackEntries = [
+  { id: "f1", rating: 5, comment: "Loved the Ema Datshi, will come back!", time: "10m ago" },
+  { id: "f2", rating: 4, comment: "Great food but the wait was a bit long during lunch rush.", time: "45m ago" },
+  { id: "f3", rating: 3, comment: "", time: "1h ago" },
+  { id: "f4", rating: 5, comment: "Best butter tea on campus.", time: "2h ago" },
+  { id: "f5", rating: 2, comment: "Order took longer than expected and my momo was cold.", time: "3h ago" },
+];

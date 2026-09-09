@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Menu" },
   { href: "/booking", label: "Book a table" },
   { href: "/orders", label: "My order" },
+  { href: "/feedback", label: "Feedback" },
 ];
 
 export default function CustomerNav() {

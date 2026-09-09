@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { staffQueue, statusStyles, menuItems, categories } from "@/lib/mock-data";
-
-const tabs = ["Queue", "Menu"];
+import { staffQueue, statusStyles, menuItems, categories, feedbackEntries } from "@/lib/mock-data";
+import StaffNotificationSidebar from "@/components/StaffNotificationSidebar";
+const tabs = ["Queue", "Menu", "Feedback"];
 const nextStatus = {
   waiting: "preparing",
   preparing: "ready",
@@ -37,6 +37,14 @@ export default function StaffDashboard() {
   const [removingId, setRemovingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState(emptyForm);
+
+  const averageRating =
+    feedbackEntries.length > 0
+      ? (
+          feedbackEntries.reduce((sum, f) => sum + f.rating, 0) /
+          feedbackEntries.length
+        ).toFixed(1)
+      : null;
 
   function advanceStatus(id) {
     setQueue((prev) =>
@@ -400,7 +408,70 @@ export default function StaffDashboard() {
             </div>
           </>
         )}
+
+        {activeTab === "Feedback" && (
+          <>
+            <h1 className="font-display text-2xl text-pine">Customer feedback</h1>
+            <p className="mt-1 text-sm text-muted">
+              Anonymous ratings and comments left by customers — no names are
+              attached to any entry.
+            </p>
+
+            {feedbackEntries.length > 0 && (
+              <div className="mt-4 flex items-center gap-2">
+                <span className="text-lg text-amber">★</span>
+                <span className="font-display text-lg text-pine">
+                  {averageRating}
+                </span>
+                <span className="text-sm text-muted">
+                  average from {feedbackEntries.length}{" "}
+                  {feedbackEntries.length === 1 ? "review" : "reviews"}
+                </span>
+              </div>
+            )}
+
+            <div className="mt-6 space-y-2">
+              {feedbackEntries.length === 0 ? (
+                <p className="text-sm text-muted">No feedback yet.</p>
+              ) : (
+                feedbackEntries.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="rounded-xl border border-border bg-card px-4 py-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <span
+                            key={n}
+                            className={
+                              n <= entry.rating ? "text-amber" : "text-border"
+                            }
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted">{entry.time}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-foreground">
+                      {entry.comment ? (
+                        entry.comment
+                      ) : (
+                        <span className="italic text-muted">
+                          No comment left.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </main>
+
+      <StaffNotificationSidebar />
     </div>
   );
 }

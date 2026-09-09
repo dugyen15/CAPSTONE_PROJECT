@@ -1,30 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import CustomerNav from "@/components/CustomerNav";
 import { sampleOrder, statusStyles, TAKEAWAY_FEE } from "@/lib/mock-data";
 
 const steps = ["waiting", "preparing", "ready"];
+const CANCEL_WINDOW_SECONDS = 180; // 3 minutes
+
+function formatCountdown(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 export default function OrdersPage() {
   const order = sampleOrder;
   const currentStepIndex = steps.indexOf(order.status);
   const status = statusStyles[order.status];
 
+  const [items, setItems] = useState(order.items);
   const [confirmingPickup, setConfirmingPickup] = useState(false);
   const [pickupConfirmed, setPickupConfirmed] = useState(false);
   const [orderType, setOrderType] = useState(order.orderType || "dine-in");
   const [orderTypeConfirmed, setOrderTypeConfirmed] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(CANCEL_WINDOW_SECONDS);
 
   const isReady = order.status === "ready";
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
   const takeawayFee = orderType === "takeaway" ? TAKEAWAY_FEE : 0;
-  const finalTotal = order.total + takeawayFee;
+  const finalTotal = subtotal + takeawayFee;
+  const canStillCancel = secondsLeft > 0;
+
+  // Count down the 3-minute cancellation window. Stops once the order is
+  // cancelled or picked up so it doesn't keep ticking in the background.
+  useEffect(() => {
+    if (cancelled || pickupConfirmed) return;
+    const interval = setInterval(() => {
+      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cancelled, pickupConfirmed]);
+
+  function removeItem(id) {
+    // In a real app, this would call an API to update the order
+    // e.g. await fetch(`/api/orders/${order.id}/items/${id}`, { method: "DELETE" })
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  }
 
   function handleConfirmPickup() {
     // In a real app, this would call an API to mark the order as picked up
     // e.g. await fetch(`/api/orders/${order.id}/pickup`, { method: "POST" })
     setPickupConfirmed(true);
     setConfirmingPickup(false);
+  }
+
+  function handleCancelOrder() {
+    // In a real app, this would call an API to cancel the order
+    // e.g. await fetch(`/api/orders/${order.id}`, { method: "DELETE" })
+    setCancelled(true);
+    setCancelling(false);
+  }
+
+  // --- Cancelled state ---
+  if (cancelled) {
+    return (
+      <>
+        <CustomerNav />
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+          <p className="text-sm uppercase tracking-wide text-muted">
+            Order cancelled
+          </p>
+          <h1 className="mt-2 font-display text-3xl text-pine">
+            Order {order.id} has been cancelled
+          </h1>
+          <p className="mt-3 max-w-sm text-sm text-muted">
+            No worries — you can place a new order any time from the menu.
+          </p>
+          <Link
+            href="/"
+            className="mt-8 rounded-full bg-amber px-5 py-2 text-sm text-paper hover:bg-amber-light"
+          >
+            Back to menu
+          </Link>
+        </main>
+      </>
+    );
   }
 
   // --- Pickup confirmed state ---
@@ -46,18 +109,19 @@ export default function OrdersPage() {
           </p>
           <div className="mt-8 w-full rounded-2xl border border-border bg-card p-6 text-left">
             <ul className="space-y-2">
-              {order.items.map((item) => (
-                <li key={item.name} className="flex justify-between text-sm">
+              {items.map((item) => (
+                <li key={item.id} className="flex justify-between text-sm">
                   <span>
                     {item.qty} × {item.name}
                   </span>
+                  <span className="text-muted">Nu. {item.price * item.qty}</span>
                 </li>
               ))}
             </ul>
             <div className="my-4 border-t border-border" />
             <div className="flex justify-between text-sm text-muted">
               <span>Subtotal</span>
-              <span className="text-foreground">Nu. {order.total}</span>
+              <span className="text-foreground">Nu. {subtotal}</span>
             </div>
             {orderType === "takeaway" && (
               <div className="mt-1 flex justify-between text-sm text-muted">
@@ -200,19 +264,32 @@ export default function OrdersPage() {
             <span className="text-foreground">{order.time}</span>
           </div>
           <div className="my-4 border-t border-border" />
-          <ul className="space-y-2">
-            {order.items.map((item) => (
-              <li key={item.name} className="flex justify-between text-sm">
-                <span>
-                  {item.qty} × {item.name}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {items.length === 0 ? (
+            <p className="text-sm text-muted">No items left in this order.</p>
+          ) : (
+            <ul className="space-y-2">
+              {items.map((item) => (
+                <li key={item.id} className="flex items-center justify-between text-sm">
+                  <span>
+                    {item.qty} × {item.name}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-muted">Nu. {item.price * item.qty}</span>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="text-xs text-delayed hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="my-4 border-t border-border" />
           <div className="flex justify-between text-sm text-muted">
             <span>Subtotal</span>
-            <span className="text-foreground">Nu. {order.total}</span>
+            <span className="text-foreground">Nu. {subtotal}</span>
           </div>
           {orderType === "takeaway" && (
             <div className="mt-1 flex justify-between text-sm text-muted">
@@ -230,8 +307,12 @@ export default function OrdersPage() {
         {isReady ? (
           <div className="mt-8">
             <button
-              onClick={() => setConfirmingPickup(true)}
-              className="w-full rounded-full bg-amber py-3 text-paper transition-colors hover:bg-amber-light"
+              onClick={() => {
+                setConfirmingPickup(true);
+                setCancelling(false);
+              }}
+              disabled={items.length === 0}
+              className="w-full rounded-full bg-amber py-3 text-paper transition-colors hover:bg-amber-light disabled:cursor-not-allowed disabled:opacity-40"
             >
               Confirm pickup
             </button>
@@ -267,6 +348,57 @@ export default function OrdersPage() {
             You&apos;ll get a notification the moment your order is ready for
             pickup.
           </p>
+        )}
+
+        {/* Cancel order — only within the 3-minute window */}
+        <div className="mt-6 text-center">
+          {canStillCancel ? (
+            <>
+              <p className="mb-2 text-xs text-muted">
+                You can cancel this order within {formatCountdown(secondsLeft)}
+              </p>
+              <button
+                onClick={() => {
+                  setCancelling(true);
+                  setConfirmingPickup(false);
+                }}
+                className="rounded-full border border-red-300 px-5 py-2 text-sm text-red-600 hover:bg-red-50"
+              >
+                Cancel order
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-muted">
+              The cancellation window for this order has closed.
+            </p>
+          )}
+        </div>
+
+        {cancelling && canStillCancel && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-5 text-left">
+            <p className="text-sm font-medium text-red-700">
+              Cancel this order?
+            </p>
+            <p className="mt-1 text-sm text-red-600/80">
+              Order {order.id} ({items.length}{" "}
+              {items.length === 1 ? "item" : "items"}, Nu. {finalTotal}) will
+              be cancelled. This can&apos;t be undone.
+            </p>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={handleCancelOrder}
+                className="rounded-full bg-red-600 px-4 py-1.5 text-sm text-white hover:bg-red-700"
+              >
+                Yes, cancel it
+              </button>
+              <button
+                onClick={() => setCancelling(false)}
+                className="rounded-full border border-border px-4 py-1.5 text-sm hover:border-pine/40"
+              >
+                Keep order
+              </button>
+            </div>
+          </div>
         )}
       </main>
     </>
