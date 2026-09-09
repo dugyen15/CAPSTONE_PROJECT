@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import CustomerNav from "@/components/CustomerNav";
-import { sampleOrder, statusStyles } from "@/lib/mock-data";
+import { sampleOrder, statusStyles, TAKEAWAY_FEE } from "@/lib/mock-data";
 
 const steps = ["waiting", "preparing", "ready"];
 
@@ -13,8 +13,12 @@ export default function OrdersPage() {
 
   const [confirmingPickup, setConfirmingPickup] = useState(false);
   const [pickupConfirmed, setPickupConfirmed] = useState(false);
+  const [orderType, setOrderType] = useState(order.orderType || "dine-in");
+  const [orderTypeConfirmed, setOrderTypeConfirmed] = useState(false);
 
   const isReady = order.status === "ready";
+  const takeawayFee = orderType === "takeaway" ? TAKEAWAY_FEE : 0;
+  const finalTotal = order.total + takeawayFee;
 
   function handleConfirmPickup() {
     // In a real app, this would call an API to mark the order as picked up
@@ -36,8 +40,9 @@ export default function OrdersPage() {
             Enjoy your meal!
           </h1>
           <p className="mt-3 max-w-sm text-sm text-muted">
-            Pickup confirmed for queue number {order.queueNumber}. Thanks for
-            ordering with us.
+            {orderType === "takeaway"
+              ? "Takeaway order confirmed. Thanks for ordering with us."
+              : `Pickup confirmed for queue number ${order.queueNumber}. Thanks for ordering with us.`}
           </p>
           <div className="mt-8 w-full rounded-2xl border border-border bg-card p-6 text-left">
             <ul className="space-y-2">
@@ -50,9 +55,20 @@ export default function OrdersPage() {
               ))}
             </ul>
             <div className="my-4 border-t border-border" />
+            <div className="flex justify-between text-sm text-muted">
+              <span>Subtotal</span>
+              <span className="text-foreground">Nu. {order.total}</span>
+            </div>
+            {orderType === "takeaway" && (
+              <div className="mt-1 flex justify-between text-sm text-muted">
+                <span>Takeaway fee</span>
+                <span className="text-foreground">Nu. {TAKEAWAY_FEE}</span>
+              </div>
+            )}
+            <div className="my-4 border-t border-border" />
             <div className="flex justify-between font-display text-lg text-pine">
               <span>Total</span>
-              <span>Nu. {order.total}</span>
+              <span>Nu. {finalTotal}</span>
             </div>
           </div>
         </main>
@@ -117,10 +133,67 @@ export default function OrdersPage() {
           ))}
         </div>
 
-        <div className="mt-12 rounded-2xl border border-border bg-card p-6">
+        {/* Dine in / takeaway toggle */}
+        <div className="mt-10">
+          <p className="mb-2 text-sm text-muted">Dine in or takeaway?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setOrderType("dine-in")}
+              disabled={orderTypeConfirmed}
+              className={`flex-1 rounded-full border px-4 py-1.5 text-sm transition-colors ${
+                orderType === "dine-in"
+                  ? "border-pine bg-pine text-paper"
+                  : "border-border text-foreground/70 hover:border-pine/40"
+              } ${orderTypeConfirmed ? "opacity-60 cursor-not-allowed" : ""}`}
+            >
+              Dine in
+            </button>
+            <button
+              onClick={() => setOrderType("takeaway")}
+              disabled={orderTypeConfirmed}
+              className={`flex-1 rounded-full border px-4 py-1.5 text-sm transition-colors ${
+                orderType === "takeaway"
+                  ? "border-pine bg-pine text-paper"
+                  : "border-border text-foreground/70 hover:border-pine/40"
+              } ${orderTypeConfirmed ? "opacity-60 cursor-not-allowed" : ""}`}
+            >
+              Takeaway (+Nu. {TAKEAWAY_FEE})
+            </button>
+          </div>
+
+          {orderTypeConfirmed ? (
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-pine/30 bg-pine/5 px-4 py-2.5">
+              <p className="text-sm text-foreground">
+                Confirmed:{" "}
+                <span className="font-medium">
+                  {orderType === "takeaway"
+                    ? `Takeaway (+Nu. ${TAKEAWAY_FEE})`
+                    : "Dine in"}
+                </span>
+              </p>
+              <button
+                onClick={() => setOrderTypeConfirmed(false)}
+                className="text-xs text-pine hover:underline"
+              >
+                Change
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setOrderTypeConfirmed(true)}
+              className="mt-3 w-full rounded-full bg-pine py-2 text-sm text-paper transition-colors hover:bg-pine/90"
+            >
+              Confirm {orderType === "takeaway" ? "takeaway" : "dine in"}
+            </button>
+          )}
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-border bg-card p-6">
           <div className="flex justify-between text-sm text-muted">
-            <span>Table</span>
-            <span className="text-foreground">{order.table}</span>
+            <span>{orderType === "takeaway" ? "Order type" : "Table"}</span>
+            <span className="text-foreground">
+              {orderType === "takeaway" ? "Takeaway" : order.table}
+            </span>
           </div>
           <div className="mt-2 flex justify-between text-sm text-muted">
             <span>Pickup time</span>
@@ -137,9 +210,20 @@ export default function OrdersPage() {
             ))}
           </ul>
           <div className="my-4 border-t border-border" />
+          <div className="flex justify-between text-sm text-muted">
+            <span>Subtotal</span>
+            <span className="text-foreground">Nu. {order.total}</span>
+          </div>
+          {orderType === "takeaway" && (
+            <div className="mt-1 flex justify-between text-sm text-muted">
+              <span>Takeaway fee</span>
+              <span className="text-foreground">Nu. {TAKEAWAY_FEE}</span>
+            </div>
+          )}
+          <div className="my-4 border-t border-border" />
           <div className="flex justify-between font-display text-lg text-pine">
             <span>Total</span>
-            <span>Nu. {order.total}</span>
+            <span>Nu. {finalTotal}</span>
           </div>
         </div>
 

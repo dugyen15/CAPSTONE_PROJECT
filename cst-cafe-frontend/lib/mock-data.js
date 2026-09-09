@@ -72,11 +72,11 @@ export const menuItems = [
 ];
 
 export const tables = [
-  { id: "t1", label: "Table 1", seats: 2 },
-  { id: "t2", label: "Table 2", seats: 4 },
-  { id: "t3", label: "Table 3", seats: 4 },
-  { id: "t4", label: "Table 4", seats: 6 },
-  { id: "t5", label: "Table 5", seats: 2 },
+  { id: "t1", label: "Table 1", seats: 2, nearWindow: true },
+  { id: "t2", label: "Table 2", seats: 4, nearWindow: false },
+  { id: "t3", label: "Table 3", seats: 4, nearWindow: false },
+  { id: "t4", label: "Table 4", seats: 6, nearWindow: false },
+  { id: "t5", label: "Table 5", seats: 2, nearWindow: true },
 ];
 
 export const timeSlots = [
@@ -84,12 +84,16 @@ export const timeSlots = [
   "12:30 PM", "12:45 PM", "1:00 PM", "1:15 PM",
 ];
 
+// Flat surcharge applied when a customer chooses takeaway instead of dine-in.
+export const TAKEAWAY_FEE = 10;
+
 // A customer's live order/queue state — used on the Order Status page.
 export const sampleOrder = {
   id: "ORD-0142",
   queueNumber: 7,
   aheadInQueue: 3,
   status: "preparing", // waiting | preparing | ready | delayed
+  orderType: "dine-in", // dine-in | takeaway
   table: "Table 3",
   time: "12:15 PM",
   items: [
@@ -101,11 +105,11 @@ export const sampleOrder = {
 
 // Bookings/orders queue as staff would see it on the dashboard.
 export const staffQueue = [
-  { id: "ORD-0139", customer: "Pema Choden", table: "Table 1", items: 2, status: "ready", time: "12:00 PM" },
-  { id: "ORD-0140", customer: "Tashi Norbu", table: "Table 4", items: 3, status: "preparing", time: "12:05 PM" },
-  { id: "ORD-0141", customer: "Dechen Lham", table: "Table 2", items: 1, status: "waiting", time: "12:10 PM" },
-  { id: "ORD-0142", customer: "Karma Wangdi", table: "Table 3", items: 2, status: "preparing", time: "12:15 PM" },
-  { id: "ORD-0143", customer: "Sonam Yangki", table: "—", items: 1, status: "delayed", time: "12:15 PM" },
+  { id: "ORD-0139", customer: "Pema Choden", table: "Table 1", orderType: "dine-in", items: 2, status: "ready", time: "12:00 PM" },
+  { id: "ORD-0140", customer: "Tashi Norbu", table: "Table 4", orderType: "dine-in", items: 3, status: "preparing", time: "12:05 PM" },
+  { id: "ORD-0141", customer: "Dechen Lham", table: "Table 2", orderType: "dine-in", items: 1, status: "waiting", time: "12:10 PM" },
+  { id: "ORD-0142", customer: "Karma Wangdi", table: "Table 3", orderType: "dine-in", items: 2, status: "preparing", time: "12:15 PM" },
+  { id: "ORD-0143", customer: "Sonam Yangki", table: "—", orderType: "takeaway", items: 1, status: "delayed", time: "12:15 PM" },
 ];
 
 export const statusStyles = {
