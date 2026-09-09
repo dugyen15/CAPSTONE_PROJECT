@@ -17,6 +17,31 @@
   --delayed: #b23a24;
 }
 
+/* Dark mode overrides — applied when the "dark" class is present on <html>.
+   Toggled client-side by components/SettingsMenu.js via lib/theme.js and
+   persisted to localStorage; see the inline script in app/layout.js that
+   applies it before first paint to avoid a flash of the wrong theme.
+   Note: --paper doubles as both a surface color (nav/header/input backgrounds)
+   and the text color used on top of --pine/--amber buttons (text-paper on
+   bg-pine). Keeping it dark here works for both roles at once — buttons get
+   light backgrounds with dark text, and surfaces go dark to match the page. */
+.dark {
+  --background: #1b130c;
+  --foreground: #f3e8d6;
+  --pine: #d9b78d;
+  --pine-light: #e8cead;
+  --amber: #e2a15c;
+  --amber-light: #f0c087;
+  --paper: #14100b;
+  --card: #241b12;
+  --border: #3d2e1e;
+  --muted: #b6a186;
+  --ready: #86c26c;
+  --preparing: #e2a15c;
+  --waiting: #b6a186;
+  --delayed: #e2695a;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -40,4 +65,5 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }

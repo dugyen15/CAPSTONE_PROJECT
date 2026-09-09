@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -60,9 +62,9 @@ export default function SignupPage() {
       // });
       // if (!res.ok) throw new Error("Could not create account");
       console.log("signup submit (placeholder):", form);
+      router.push("/menu");
     } catch (err) {
       setErrors({ form: err.message || "Something went wrong. Try again." });
-    } finally {
       setSubmitting(false);
     }
   }

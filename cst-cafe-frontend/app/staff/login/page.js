@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function LoginPage() {
+export default function StaffLoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -37,15 +37,15 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      // TODO: wire this up to your real login endpoint, e.g.:
-      // const res = await fetch("/api/auth/login", {
+      // TODO: wire this up to your real staff login endpoint, e.g.:
+      // const res = await fetch("/api/staff/login", {
       //   method: "POST",
       //   headers: { "Content-Type": "application/json" },
       //   body: JSON.stringify(form),
       // });
       // if (!res.ok) throw new Error("Invalid email or password");
-      console.log("login submit (placeholder):", form);
-      router.push("/menu");
+      console.log("staff login submit (placeholder):", form);
+      router.push("/staff");
     } catch (err) {
       setErrors({ form: err.message || "Something went wrong. Try again." });
       setSubmitting(false);
@@ -53,25 +53,28 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-amber-50 px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-amber-100 p-8">
+    <main className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-lg">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-amber-900">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-amber">
+            Staff Portal
+          </p>
+          <Link href="/" className="mt-2 block font-display text-2xl text-pine">
             CST Cafe
           </Link>
-          <p className="text-sm text-amber-700/70 mt-1">Log in to your account</p>
+          <p className="mt-1 text-sm text-muted">Sign in to the staff dashboard</p>
         </div>
 
         {errors.form && (
-          <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          <p className="mb-4 text-sm text-delayed bg-delayed/10 border border-delayed/20 rounded-lg px-3 py-2">
             {errors.form}
           </p>
         )}
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-amber-900 mb-1">
-              Email
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
+              Staff email
             </label>
             <input
               id="email"
@@ -80,14 +83,14 @@ export default function LoginPage() {
               value={form.email}
               onChange={handleChange}
               autoComplete="email"
-              className="w-full rounded-lg border border-amber-200 px-3 py-2 text-sm text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              placeholder="you@example.com"
+              className="w-full rounded-lg border border-border bg-paper px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-pine/40"
+              placeholder="you@cstcafe.bt"
             />
-            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
+            {errors.email && <p className="mt-1 text-xs text-delayed">{errors.email}</p>}
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-amber-900 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
               Password
             </label>
             <input
@@ -97,25 +100,30 @@ export default function LoginPage() {
               value={form.password}
               onChange={handleChange}
               autoComplete="current-password"
-              className="w-full rounded-lg border border-amber-200 px-3 py-2 text-sm text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full rounded-lg border border-border bg-paper px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-pine/40"
               placeholder="••••••••"
             />
-            {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
+            {errors.password && <p className="mt-1 text-xs text-delayed">{errors.password}</p>}
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-amber-800 text-white font-medium py-2.5 hover:bg-amber-900 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full rounded-full bg-pine text-paper font-medium py-2.5 hover:bg-pine/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {submitting ? "Logging in..." : "Log in"}
+            {submitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-amber-700/70">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-amber-900 font-medium hover:underline">
-            Sign up
+        <p className="mt-6 text-center text-sm text-muted">
+          New staff member?{" "}
+          <Link href="/staff/signup" className="text-pine font-medium hover:underline">
+            Create an account
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-xs text-muted">
+          <Link href="/" className="hover:underline">
+            Back to customer site
           </Link>
         </p>
       </div>

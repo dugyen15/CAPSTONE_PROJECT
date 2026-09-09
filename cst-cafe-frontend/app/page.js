@@ -1,83 +1,54 @@
 "use client";
 
-import { useState } from "react";
-import CustomerNav from "@/components/CustomerNav";
-import { categories, menuItems } from "@/lib/mock-data";
+import Link from "next/link";
+import CafeHeroScene from "../components/CafeHeroScene";
 
-export default function MenuPage() {
-  const [activeCategory, setActiveCategory] = useState("All");
-
-  const visibleItems =
-    activeCategory === "All"
-      ? menuItems
-      : menuItems.filter((item) => item.category === activeCategory);
-
+export default function HomePage() {
   return (
-    <>
-      <CustomerNav />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
-        <section className="mb-10">
-          <p className="text-sm uppercase tracking-wide text-amber">
-            CST Cafe
-          </p>
-          <h1 className="mt-2 max-w-lg font-display text-4xl leading-tight text-pine">
-            Order ahead. Skip the line.
-          </h1>
-          <p className="mt-3 max-w-md text-muted">
-            Browse today&apos;s menu, book a table, and place your order before
-            you even leave class.
-          </p>
-        </section>
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-card via-paper to-amber/10 px-6 text-center">
+      <CafeHeroScene className="pointer-events-none absolute inset-0 h-full w-full" />
 
-        <div className="mb-6 flex gap-2">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${
-                activeCategory === cat
-                  ? "border-pine bg-pine text-paper"
-                  : "border-border text-foreground/70 hover:border-pine/40"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+      <div className="relative z-10 flex w-full max-w-md flex-col items-center">
+        <p className="text-sm uppercase tracking-[0.2em] text-amber">
+          Welcome to
+        </p>
+        <h1 className="mt-2 font-display text-5xl leading-tight text-pine sm:text-6xl">
+          CST Cafe
+        </h1>
+        <p className="mt-4 text-muted">
+          Order ahead, book a table, and skip the line. Log in or create an
+          account to get started.
+        </p>
+
+        <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            href="/login"
+            className="rounded-full border border-pine px-6 py-2.5 text-sm font-medium text-pine hover:bg-pine/5 transition-colors"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/signup"
+            className="rounded-full bg-pine px-6 py-2.5 text-sm font-medium text-paper hover:bg-pine/90 transition-colors"
+          >
+            Sign up
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {visibleItems.map((item) => (
-            <div
-              key={item.id}
-              className={`flex flex-col justify-between rounded-2xl border border-border bg-card p-5 ${
-                !item.available ? "opacity-50" : ""
-              }`}
-            >
-              <div>
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-display text-lg text-foreground">
-                    {item.name}
-                  </h3>
-                  <span className="whitespace-nowrap font-display text-lg text-pine">
-                    Nu. {item.price}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-muted">{item.description}</p>
-              </div>
-              <div className="mt-4 flex items-center justify-between text-sm">
-                <span className="text-muted">~{item.prepTime}</span>
-                {item.available ? (
-                  <button className="rounded-full bg-amber px-4 py-1.5 text-sm text-paper hover:bg-amber-light">
-                    Add to order
-                  </button>
-                ) : (
-                  <span className="text-delayed">Sold out</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </main>
-    </>
+        <Link
+          href="/menu"
+          className="mt-6 text-sm text-muted hover:text-foreground hover:underline"
+        >
+          Just browsing? View the menu
+        </Link>
+
+        <Link
+          href="/staff/login"
+          className="mt-10 text-xs text-muted/70 hover:text-foreground"
+        >
+          Staff portal
+        </Link>
+      </div>
+    </main>
   );
 }

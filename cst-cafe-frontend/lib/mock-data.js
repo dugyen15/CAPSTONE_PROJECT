@@ -5,6 +5,22 @@
 
 export const categories = ["All", "Meals", "Snacks", "Beverages"];
 
+// Mock signed-in user profiles — stand-ins for real accounts until auth
+// exists. Used by ProfileMenu / the profile pages.
+export const mockCustomer = {
+  name: "Karma Wangdi",
+  email: "karma.wangdi@rub.edu.bt",
+  phone: "17123456",
+  memberSince: "August 2026",
+};
+
+export const mockStaffUser = {
+  name: "Pema Choden",
+  email: "pema.choden@cstcafe.bt",
+  role: "Barista",
+  staffSince: "March 2026",
+};
+
 export const menuItems = [
   {
     id: "m1",
@@ -14,6 +30,7 @@ export const menuItems = [
     prepTime: "12 min",
     available: true,
     description: "Chili cheese stew served over steamed rice.",
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Shakam_Datshi.jpg",
   },
   {
     id: "m2",
@@ -23,6 +40,7 @@ export const menuItems = [
     prepTime: "15 min",
     available: true,
     description: "Steamed dumplings with house chili sauce.",
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Steamed_Chicken_Momo.jpg",
   },
   {
     id: "m3",
@@ -32,6 +50,7 @@ export const menuItems = [
     prepTime: "10 min",
     available: true,
     description: "Warm noodle soup with seasonal vegetables.",
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Thukpa,_Tibetan_noodle_in_Osaka,_Japan.jpg",
   },
   {
     id: "m4",
@@ -41,6 +60,7 @@ export const menuItems = [
     prepTime: "5 min",
     available: true,
     description: "Crisp pastry with spiced potato filling.",
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/North_Indian_style_samosa.jpg",
   },
   {
     id: "m5",
@@ -50,6 +70,7 @@ export const menuItems = [
     prepTime: "6 min",
     available: false,
     description: "Grilled sandwich with local cheese.",
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Grilled_cheese_sandwich.jpg",
   },
   {
     id: "m6",
@@ -59,6 +80,7 @@ export const menuItems = [
     prepTime: "3 min",
     available: true,
     description: "Traditional salted butter tea, served hot.",
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Butter_tea,_Bhutan.JPG",
   },
   {
     id: "m7",
@@ -68,6 +90,7 @@ export const menuItems = [
     prepTime: "3 min",
     available: true,
     description: "Sweet milk tea, served hot or iced.",
+    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Hong_Kong-style_Milk_Tea.jpg",
   },
 ];
 

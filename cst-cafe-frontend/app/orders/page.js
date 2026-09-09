@@ -34,8 +34,6 @@ export default function OrdersPage() {
   const finalTotal = subtotal + takeawayFee;
   const canStillCancel = secondsLeft > 0;
 
-  // Count down the 3-minute cancellation window. Stops once the order is
-  // cancelled or picked up so it doesn't keep ticking in the background.
   useEffect(() => {
     if (cancelled || pickupConfirmed) return;
     const interval = setInterval(() => {
@@ -45,26 +43,19 @@ export default function OrdersPage() {
   }, [cancelled, pickupConfirmed]);
 
   function removeItem(id) {
-    // In a real app, this would call an API to update the order
-    // e.g. await fetch(`/api/orders/${order.id}/items/${id}`, { method: "DELETE" })
     setItems((prev) => prev.filter((item) => item.id !== id));
   }
 
   function handleConfirmPickup() {
-    // In a real app, this would call an API to mark the order as picked up
-    // e.g. await fetch(`/api/orders/${order.id}/pickup`, { method: "POST" })
     setPickupConfirmed(true);
     setConfirmingPickup(false);
   }
 
   function handleCancelOrder() {
-    // In a real app, this would call an API to cancel the order
-    // e.g. await fetch(`/api/orders/${order.id}`, { method: "DELETE" })
     setCancelled(true);
     setCancelling(false);
   }
 
-  // --- Cancelled state ---
   if (cancelled) {
     return (
       <>
@@ -80,7 +71,7 @@ export default function OrdersPage() {
             No worries — you can place a new order any time from the menu.
           </p>
           <Link
-            href="/"
+            href="/menu"
             className="mt-8 rounded-full bg-amber px-5 py-2 text-sm text-paper hover:bg-amber-light"
           >
             Back to menu
@@ -90,7 +81,6 @@ export default function OrdersPage() {
     );
   }
 
-  // --- Pickup confirmed state ---
   if (pickupConfirmed) {
     return (
       <>
@@ -135,6 +125,12 @@ export default function OrdersPage() {
               <span>Nu. {finalTotal}</span>
             </div>
           </div>
+          <Link
+            href="/feedback"
+            className="mt-6 text-sm text-muted hover:text-foreground hover:underline"
+          >
+            Have feedback about your order? Let us know
+          </Link>
         </main>
       </>
     );
@@ -168,7 +164,6 @@ export default function OrdersPage() {
             : `${order.aheadInQueue} orders ahead of you.`}
         </p>
 
-        {/* Progress tracker */}
         <div className="mt-10 flex items-center">
           {steps.map((step, i) => (
             <div key={step} className="flex flex-1 items-center last:flex-none">
@@ -197,7 +192,6 @@ export default function OrdersPage() {
           ))}
         </div>
 
-        {/* Dine in / takeaway toggle */}
         <div className="mt-10">
           <p className="mb-2 text-sm text-muted">Dine in or takeaway?</p>
           <div className="flex gap-2">
@@ -350,7 +344,6 @@ export default function OrdersPage() {
           </p>
         )}
 
-        {/* Cancel order — only within the 3-minute window */}
         <div className="mt-6 text-center">
           {canStillCancel ? (
             <>
