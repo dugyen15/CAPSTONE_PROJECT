@@ -53,7 +53,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-amber-50 px-4">
+    <main className="force-light min-h-screen flex items-center justify-center bg-amber-50 px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-amber-100 p-8">
         <div className="text-center mb-8">
           <Link href="/" className="text-2xl font-bold text-amber-900">

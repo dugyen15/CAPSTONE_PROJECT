@@ -67,3 +67,23 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* Forces a subtree back to the light-mode palette regardless of the page's
+   dark mode state — used on the login/signup pages so they stay visually
+   consistent no matter what a visitor's saved theme preference is. */
+.force-light {
+  --background: #fdf6ec;
+  --foreground: #2b1c12;
+  --pine: #4a2a1a;
+  --pine-light: #6e4530;
+  --amber: #c17a35;
+  --amber-light: #db9a52;
+  --paper: #fdf6ec;
+  --card: #f5e9d6;
+  --border: #e6d5b8;
+  --muted: #7c6a55;
+  --ready: #5c8a3a;
+  --preparing: #c17a35;
+  --waiting: #8a7862;
+  --delayed: #b23a24;
+}
