@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import CustomerNav from "@/components/CustomerNav";
 import { sampleOrder, statusStyles, TAKEAWAY_FEE } from "@/lib/mock-data";
+import { useOrder } from "@/lib/OrderContext";
 
 const steps = ["waiting", "preparing", "ready"];
 const CANCEL_WINDOW_SECONDS = 180; // 3 minutes
@@ -15,7 +16,16 @@ function formatCountdown(totalSeconds) {
 }
 
 export default function OrdersPage() {
-  const order = sampleOrder;
+  const { orderItems, orderType: confirmedOrderType, hasOrder } = useOrder();
+  // If the customer just confirmed an order on the menu page, show that —
+  // otherwise fall back to the static demo order.
+  const order = hasOrder
+    ? {
+        ...sampleOrder,
+        items: orderItems,
+        orderType: confirmedOrderType || sampleOrder.orderType,
+      }
+    : sampleOrder;
   const currentStepIndex = steps.indexOf(order.status);
   const status = statusStyles[order.status];
 
