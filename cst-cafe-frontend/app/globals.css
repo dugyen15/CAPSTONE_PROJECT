@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* NEW 1: make Tailwind's dark: classes follow your .dark class,
+   not the laptop's dark mode setting */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #fdf6ec;
   --foreground: #2b1c12;
@@ -17,14 +21,6 @@
   --delayed: #b23a24;
 }
 
-/* Dark mode overrides — applied when the "dark" class is present on <html>.
-   Toggled client-side by components/SettingsMenu.js via lib/theme.js and
-   persisted to localStorage; see the inline script in app/layout.js that
-   applies it before first paint to avoid a flash of the wrong theme.
-   Note: --paper doubles as both a surface color (nav/header/input backgrounds)
-   and the text color used on top of --pine/--amber buttons (text-paper on
-   bg-pine). Keeping it dark here works for both roles at once — buttons get
-   light backgrounds with dark text, and surfaces go dark to match the page. */
 .dark {
   --background: #1b130c;
   --foreground: #f3e8d6;
@@ -68,9 +64,6 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Forces a subtree back to the light-mode palette regardless of the page's
-   dark mode state — used on the login/signup pages so they stay visually
-   consistent no matter what a visitor's saved theme preference is. */
 .force-light {
   --background: #fdf6ec;
   --foreground: #2b1c12;
@@ -86,4 +79,20 @@ body {
   --preparing: #c17a35;
   --waiting: #8a7862;
   --delayed: #b23a24;
+
+  /* NEW 2: keep text and browser form controls light here */
+  color: var(--foreground);
+  color-scheme: light;
+}
+
+/* NEW 3: always show input text and placeholders on login/signup */
+.force-light input,
+.force-light textarea {
+  color: var(--foreground);
+  background-color: var(--paper);
+}
+.force-light input::placeholder,
+.force-light textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
