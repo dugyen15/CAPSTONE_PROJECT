@@ -1,7 +1,4 @@
-// A cute, hand-drawn-style café scene used as decorative background art
-// behind the homepage hero. Pure SVG line art (no images to load) using the
-// site's existing pine/amber palette at low opacity so the headline stays
-// the focal point.
+
 
 export default function CafeHeroScene({ className }) {
   return (
