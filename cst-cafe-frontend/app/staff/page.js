@@ -6,7 +6,7 @@ import StaffNotificationSidebar from "@/components/StaffNotificationSidebar";
 import ProfileMenu from "@/components/ProfileMenu";
 import SettingsMenu from "@/components/SettingsMenu";
 
-const tabs = ["Queue", "Menu", "Feedback"];
+const tabs = ["Queue", "Menu", "Feedback", "Notifications"];
 const nextStatus = {
   waiting: "preparing",
   preparing: "ready",
@@ -443,6 +443,8 @@ export default function StaffDashboard() {
                 </div>
               )}
 
+            
+
               <div className="mt-6 space-y-2">
                 {feedbackEntries.length === 0 ? (
                   <p className="text-sm text-muted">No feedback yet.</p>
@@ -482,9 +484,14 @@ export default function StaffDashboard() {
               </div>
             </>
           )}
+
+          {/* Notifications tab */}
+          {activeTab === "Notifications" && (
+            <StaffNotificationSidebar />
+          )}
         </main>
 
-        <StaffNotificationSidebar />
+        
       </div>
     </div>
   );
