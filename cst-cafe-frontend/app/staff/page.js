@@ -1,12 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { staffQueue, statusStyles, menuItems, categories, feedbackEntries, mockStaffUser } from "@/lib/mock-data";
+import {
+  staffQueue,
+  statusStyles,
+  menuItems,
+  categories,
+  feedbackEntries,
+  mockStaffUser,
+} from "@/lib/mock-data";
 import StaffNotificationSidebar from "@/components/StaffNotificationSidebar";
 import ProfileMenu from "@/components/ProfileMenu";
 import SettingsMenu from "@/components/SettingsMenu";
 
 const tabs = ["Queue", "Menu", "Feedback", "Notifications"];
+
 const nextStatus = {
   waiting: "preparing",
   preparing: "ready",
@@ -15,8 +23,14 @@ const nextStatus = {
 };
 
 const orderTypeStyles = {
-  "dine-in": { label: "Dine in", className: "bg-pine/10 text-pine" },
-  takeaway: { label: "Takeaway", className: "bg-amber/15 text-amber" },
+  "dine-in": {
+    label: "Dine in",
+    className: "bg-pine/10 text-pine",
+  },
+  takeaway: {
+    label: "Takeaway",
+    className: "bg-amber/15 text-amber",
+  },
 };
 
 const menuCategories = categories.filter((c) => c !== "All");
@@ -31,7 +45,14 @@ const emptyForm = {
 
 export default function StaffDashboard() {
   const [activeTab, setActiveTab] = useState("Queue");
-  const [queue, setQueue] = useState(staffQueue);
+
+  // Payment status is staff-only
+  const [queue, setQueue] = useState(
+    staffQueue.map((order) => ({
+      ...order,
+      paid: order.paid ?? false,
+    }))
+  );
 
   // --- Menu management state ---
   const [items, setItems] = useState(menuItems);
@@ -52,7 +73,20 @@ export default function StaffDashboard() {
   function advanceStatus(id) {
     setQueue((prev) =>
       prev.map((order) =>
-        order.id === id ? { ...order, status: nextStatus[order.status] } : order
+        order.id === id
+          ? { ...order, status: nextStatus[order.status] }
+          : order
+      )
+    );
+  }
+
+  // Staff can change whether an order has been paid
+  function togglePayment(id) {
+    setQueue((prev) =>
+      prev.map((order) =>
+        order.id === id
+          ? { ...order, paid: !order.paid }
+          : order
       )
     );
   }
@@ -60,7 +94,9 @@ export default function StaffDashboard() {
   function toggleAvailability(id) {
     setItems((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, available: !item.available } : item
+        item.id === id
+          ? { ...item, available: !item.available }
+          : item
       )
     );
   }
@@ -69,6 +105,7 @@ export default function StaffDashboard() {
     setShowAddForm(false);
     setRemovingId(null);
     setEditingId(item.id);
+
     setEditForm({
       name: item.name,
       category: item.category,
@@ -84,6 +121,7 @@ export default function StaffDashboard() {
 
   function saveEdit(id) {
     if (!editForm.name.trim()) return;
+
     setItems((prev) =>
       prev.map((item) =>
         item.id === id
@@ -98,6 +136,7 @@ export default function StaffDashboard() {
           : item
       )
     );
+
     setEditingId(null);
   }
 
@@ -108,7 +147,9 @@ export default function StaffDashboard() {
 
   function addItem(e) {
     e.preventDefault();
+
     if (!addForm.name.trim()) return;
+
     const newItem = {
       id: `m${Date.now()}`,
       name: addForm.name.trim(),
@@ -118,6 +159,7 @@ export default function StaffDashboard() {
       available: true,
       description: addForm.description.trim(),
     };
+
     setItems((prev) => [...prev, newItem]);
     setAddForm(emptyForm);
     setShowAddForm(false);
@@ -130,8 +172,13 @@ export default function StaffDashboard() {
           <p className="font-display text-lg text-pine">CST Cafe</p>
           <p className="text-xs text-muted">Staff dashboard</p>
         </div>
+
         <div className="flex items-center gap-3">
-          <ProfileMenu user={mockStaffUser} profileHref="/staff/profile" />
+          <ProfileMenu
+            user={mockStaffUser}
+            profileHref="/staff/profile"
+          />
+
           <SettingsMenu logoutHref="/staff/login" />
         </div>
       </header>
@@ -156,36 +203,84 @@ export default function StaffDashboard() {
         </aside>
 
         <main className="flex-1 px-8 py-8">
+          {/* ================= QUEUE ================= */}
           {activeTab === "Queue" && (
             <>
-              <h1 className="font-display text-2xl text-pine">Active queue</h1>
+              <h1 className="font-display text-2xl text-pine">
+                Active queue
+              </h1>
+
               <p className="mt-1 text-sm text-muted">
-                Update an order&apos;s status as it moves through preparation.
+                Update an order&apos;s status and payment as it moves through
+                preparation.
               </p>
 
               <div className="mt-6 overflow-hidden rounded-xl border border-border">
                 <table className="w-full text-sm">
                   <thead className="bg-card text-left text-muted">
                     <tr>
-                      <th className="px-4 py-3 font-medium">Order</th>
-                      <th className="px-4 py-3 font-medium">Customer</th>
-                      <th className="px-4 py-3 font-medium">Table</th>
-                      <th className="px-4 py-3 font-medium">Type</th>
-                      <th className="px-4 py-3 font-medium">Items</th>
-                      <th className="px-4 py-3 font-medium">Time</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 font-medium">
+                        Order
+                      </th>
+
+                      <th className="px-4 py-3 font-medium">
+                        Customer
+                      </th>
+
+                      <th className="px-4 py-3 font-medium">
+                        Table
+                      </th>
+
+                      <th className="px-4 py-3 font-medium">
+                        Type
+                      </th>
+
+                      <th className="px-4 py-3 font-medium">
+                        Items
+                      </th>
+
+                      <th className="px-4 py-3 font-medium">
+                        Time
+                      </th>
+
+                      <th className="px-4 py-3 font-medium">
+                        Status
+                      </th>
+
+                      {/* STAFF-ONLY PAYMENT COLUMN */}
+                      <th className="px-4 py-3 font-medium">
+                        Payment
+                      </th>
+
                       <th className="px-4 py-3 font-medium"></th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {queue.map((order) => {
                       const status = statusStyles[order.status];
-                      const type = orderTypeStyles[order.orderType] || orderTypeStyles["dine-in"];
+
+                      const type =
+                        orderTypeStyles[order.orderType] ||
+                        orderTypeStyles["dine-in"];
+
                       return (
-                        <tr key={order.id} className="border-t border-border">
-                          <td className="px-4 py-3 font-medium">{order.id}</td>
-                          <td className="px-4 py-3">{order.customer}</td>
-                          <td className="px-4 py-3">{order.table}</td>
+                        <tr
+                          key={order.id}
+                          className="border-t border-border"
+                        >
+                          <td className="px-4 py-3 font-medium">
+                            {order.id}
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {order.customer}
+                          </td>
+
+                          <td className="px-4 py-3">
+                            {order.table}
+                          </td>
+
                           <td className="px-4 py-3">
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-medium ${type.className}`}
@@ -193,8 +288,15 @@ export default function StaffDashboard() {
                               {type.label}
                             </span>
                           </td>
-                          <td className="px-4 py-3">{order.items}</td>
-                          <td className="px-4 py-3 text-muted">{order.time}</td>
+
+                          <td className="px-4 py-3">
+                            {order.items}
+                          </td>
+
+                          <td className="px-4 py-3 text-muted">
+                            {order.time}
+                          </td>
+
                           <td className="px-4 py-3">
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}
@@ -202,10 +304,40 @@ export default function StaffDashboard() {
                               {status.label}
                             </span>
                           </td>
+
+                          {/* ================= PAYMENT ================= */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                  order.paid
+                                    ? "bg-ready/15 text-ready"
+                                    : "bg-delayed/15 text-delayed"
+                                }`}
+                              >
+                                {order.paid ? "Paid" : "Unpaid"}
+                              </span>
+
+                              <button
+                                onClick={() =>
+                                  togglePayment(order.id)
+                                }
+                                className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
+                              >
+                                {order.paid
+                                  ? "Mark unpaid"
+                                  : "Mark paid"}
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* STATUS BUTTON */}
                           <td className="px-4 py-3 text-right">
                             {order.status !== "ready" && (
                               <button
-                                onClick={() => advanceStatus(order.id)}
+                                onClick={() =>
+                                  advanceStatus(order.id)
+                                }
                                 className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
                               >
                                 Mark {nextStatus[order.status]}
@@ -221,15 +353,21 @@ export default function StaffDashboard() {
             </>
           )}
 
+          {/* ================= MENU ================= */}
           {activeTab === "Menu" && (
             <>
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="font-display text-2xl text-pine">Menu items</h1>
+                  <h1 className="font-display text-2xl text-pine">
+                    Menu items
+                  </h1>
+
                   <p className="mt-1 text-sm text-muted">
-                    Toggle availability, edit details, or add and remove items.
+                    Toggle availability, edit details, or add and remove
+                    items.
                   </p>
                 </div>
+
                 <button
                   onClick={() => {
                     setShowAddForm((prev) => !prev);
@@ -251,13 +389,24 @@ export default function StaffDashboard() {
                     type="text"
                     placeholder="Item name"
                     value={addForm.name}
-                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({
+                        ...addForm,
+                        name: e.target.value,
+                      })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                     required
                   />
+
                   <select
                     value={addForm.category}
-                    onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({
+                        ...addForm,
+                        category: e.target.value,
+                      })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                   >
                     {menuCategories.map((cat) => (
@@ -266,29 +415,48 @@ export default function StaffDashboard() {
                       </option>
                     ))}
                   </select>
+
                   <input
                     type="number"
                     min="0"
                     placeholder="Price (Nu.)"
                     value={addForm.price}
-                    onChange={(e) => setAddForm({ ...addForm, price: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({
+                        ...addForm,
+                        price: e.target.value,
+                      })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                     required
                   />
+
                   <input
                     type="text"
                     placeholder="Prep time (e.g. 10 min)"
                     value={addForm.prepTime}
-                    onChange={(e) => setAddForm({ ...addForm, prepTime: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({
+                        ...addForm,
+                        prepTime: e.target.value,
+                      })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                   />
+
                   <input
                     type="text"
                     placeholder="Description"
                     value={addForm.description}
-                    onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({
+                        ...addForm,
+                        description: e.target.value,
+                      })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm sm:col-span-2"
                   />
+
                   <div className="sm:col-span-2">
                     <button
                       type="submit"
@@ -311,12 +479,23 @@ export default function StaffDashboard() {
                         <input
                           type="text"
                           value={editForm.name}
-                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              name: e.target.value,
+                            })
+                          }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
+
                         <select
                           value={editForm.category}
-                          onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              category: e.target.value,
+                            })
+                          }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         >
                           {menuCategories.map((cat) => (
@@ -325,25 +504,44 @@ export default function StaffDashboard() {
                             </option>
                           ))}
                         </select>
+
                         <input
                           type="number"
                           min="0"
                           value={editForm.price}
-                          onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              price: e.target.value,
+                            })
+                          }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
+
                         <input
                           type="text"
                           value={editForm.prepTime}
-                          onChange={(e) => setEditForm({ ...editForm, prepTime: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              prepTime: e.target.value,
+                            })
+                          }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
+
                         <input
                           type="text"
                           value={editForm.description}
-                          onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              description: e.target.value,
+                            })
+                          }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm sm:col-span-2"
                         />
+
                         <div className="flex gap-2 sm:col-span-2">
                           <button
                             onClick={() => saveEdit(item.id)}
@@ -351,6 +549,7 @@ export default function StaffDashboard() {
                           >
                             Save
                           </button>
+
                           <button
                             onClick={cancelEdit}
                             className="rounded-full border border-border px-4 py-1.5 text-xs hover:border-pine/40"
@@ -362,17 +561,27 @@ export default function StaffDashboard() {
                     ) : removingId === item.id ? (
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-foreground">
-                          Remove <span className="font-medium">{item.name}</span> from the menu?
+                          Remove{" "}
+                          <span className="font-medium">
+                            {item.name}
+                          </span>{" "}
+                          from the menu?
                         </p>
+
                         <div className="flex gap-2">
                           <button
-                            onClick={() => confirmRemove(item.id)}
+                            onClick={() =>
+                              confirmRemove(item.id)
+                            }
                             className="rounded-full bg-delayed px-3 py-1 text-xs text-paper hover:opacity-90"
                           >
                             Yes, remove
                           </button>
+
                           <button
-                            onClick={() => setRemovingId(null)}
+                            onClick={() =>
+                              setRemovingId(null)
+                            }
                             className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
                           >
                             Cancel
@@ -382,28 +591,39 @@ export default function StaffDashboard() {
                     ) : (
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="font-medium">{item.name}</p>
+                          <p className="font-medium">
+                            {item.name}
+                          </p>
+
                           <p className="text-sm text-muted">
-                            {item.category} · Nu. {item.price} · {item.prepTime}
+                            {item.category} · Nu. {item.price} ·{" "}
+                            {item.prepTime}
                           </p>
                         </div>
+
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => toggleAvailability(item.id)}
+                            onClick={() =>
+                              toggleAvailability(item.id)
+                            }
                             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                               item.available
                                 ? "bg-ready/15 text-ready hover:bg-ready/25"
                                 : "bg-delayed/15 text-delayed hover:bg-delayed/25"
                             }`}
                           >
-                            {item.available ? "Available" : "Sold out"}
+                            {item.available
+                              ? "Available"
+                              : "Sold out"}
                           </button>
+
                           <button
                             onClick={() => startEdit(item)}
                             className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
                           >
                             Edit
                           </button>
+
                           <button
                             onClick={() => {
                               setRemovingId(item.id);
@@ -422,32 +642,40 @@ export default function StaffDashboard() {
             </>
           )}
 
+          {/* ================= FEEDBACK ================= */}
           {activeTab === "Feedback" && (
             <>
-              <h1 className="font-display text-2xl text-pine">Customer feedback</h1>
+              <h1 className="font-display text-2xl text-pine">
+                Customer feedback
+              </h1>
+
               <p className="mt-1 text-sm text-muted">
-                Anonymous ratings and comments left by customers — no names are
-                attached to any entry.
+                Anonymous ratings and comments left by customers — no names
+                are attached to any entry.
               </p>
 
               {feedbackEntries.length > 0 && (
                 <div className="mt-4 flex items-center gap-2">
                   <span className="text-lg text-amber">★</span>
+
                   <span className="font-display text-lg text-pine">
                     {averageRating}
                   </span>
+
                   <span className="text-sm text-muted">
                     average from {feedbackEntries.length}{" "}
-                    {feedbackEntries.length === 1 ? "review" : "reviews"}
+                    {feedbackEntries.length === 1
+                      ? "review"
+                      : "reviews"}
                   </span>
                 </div>
               )}
 
-            
-
               <div className="mt-6 space-y-2">
                 {feedbackEntries.length === 0 ? (
-                  <p className="text-sm text-muted">No feedback yet.</p>
+                  <p className="text-sm text-muted">
+                    No feedback yet.
+                  </p>
                 ) : (
                   feedbackEntries.map((entry) => (
                     <div
@@ -460,15 +688,21 @@ export default function StaffDashboard() {
                             <span
                               key={n}
                               className={
-                                n <= entry.rating ? "text-amber" : "text-border"
+                                n <= entry.rating
+                                  ? "text-amber"
+                                  : "text-border"
                               }
                             >
                               ★
                             </span>
                           ))}
                         </div>
-                        <span className="text-xs text-muted">{entry.time}</span>
+
+                        <span className="text-xs text-muted">
+                          {entry.time}
+                        </span>
                       </div>
+
                       <p className="mt-2 text-sm text-foreground">
                         {entry.comment ? (
                           entry.comment
@@ -485,13 +719,11 @@ export default function StaffDashboard() {
             </>
           )}
 
-          {/* Notifications tab */}
+          {/* ================= NOTIFICATIONS ================= */}
           {activeTab === "Notifications" && (
             <StaffNotificationSidebar />
           )}
         </main>
-
-        
       </div>
     </div>
   );
