@@ -12,6 +12,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/menu', require('./routes/menu'));
+app.use('/api/orders', require('./routes/orders'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'CST Cafe backend is running' });
