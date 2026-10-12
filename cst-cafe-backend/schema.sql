@@ -34,3 +34,5 @@ CREATE TABLE IF NOT EXISTS order_items (
   quantity INTEGER NOT NULL CHECK (quantity > 0),
   price NUMERIC(10, 2) NOT NULL
 );
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(30);
