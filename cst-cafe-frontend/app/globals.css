@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* NEW 1: make Tailwind's dark: classes follow your .dark class,
+   not the laptop's dark mode setting */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #fdf6ec;
+  --foreground: #2b1c12;
+  --pine: #4a2a1a;
+  --pine-light: #6e4530;
+  --amber: #c17a35;
+  --amber-light: #db9a52;
+  --paper: #fdf6ec;
+  --card: #f5e9d6;
+  --border: #e6d5b8;
+  --muted: #7c6a55;
+  --ready: #5c8a3a;
+  --preparing: #c17a35;
+  --waiting: #8a7862;
+  --delayed: #b23a24;
+}
+
+.dark {
+  --background: #1b130c;
+  --foreground: #f3e8d6;
+  --pine: #d9b78d;
+  --pine-light: #e8cead;
+  --amber: #e2a15c;
+  --amber-light: #f0c087;
+  --paper: #14100b;
+  --card: #241b12;
+  --border: #3d2e1e;
+  --muted: #b6a186;
+  --ready: #86c26c;
+  --preparing: #e2a15c;
+  --waiting: #b6a186;
+  --delayed: #e2695a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-pine: var(--pine);
+  --color-pine-light: var(--pine-light);
+  --color-amber: var(--amber);
+  --color-amber-light: var(--amber-light);
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-ready: var(--ready);
+  --color-preparing: var(--preparing);
+  --color-waiting: var(--waiting);
+  --color-delayed: var(--delayed);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.force-light {
+  --background: #fdf6ec;
+  --foreground: #2b1c12;
+  --pine: #4a2a1a;
+  --pine-light: #6e4530;
+  --amber: #c17a35;
+  --amber-light: #db9a52;
+  --paper: #fdf6ec;
+  --card: #f5e9d6;
+  --border: #e6d5b8;
+  --muted: #7c6a55;
+  --ready: #5c8a3a;
+  --preparing: #c17a35;
+  --waiting: #8a7862;
+  --delayed: #b23a24;
+
+  /* NEW 2: keep text and browser form controls light here */
+  color: var(--foreground);
+  color-scheme: light;
+}
+
+/* NEW 3: always show input text and placeholders on login/signup */
+.force-light input,
+.force-light textarea {
+  color: var(--foreground);
+  background-color: var(--paper);
+}
+.force-light input::placeholder,
+.force-light textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
