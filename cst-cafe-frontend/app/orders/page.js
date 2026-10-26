@@ -45,7 +45,6 @@ export default function OrdersPage() {
 
   // After the order is placed
   const [confirmingPickup, setConfirmingPickup] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const checkingOut = !order && items.length > 0;
@@ -163,20 +162,6 @@ export default function OrdersPage() {
       const done = await api(`/orders/${order.id}/pickup`, { method: "POST", role: "customer" });
       setOrder(done);
       setConfirmingPickup(false);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function cancelOrder() {
-    setError("");
-    setBusy(true);
-    try {
-      const done = await api(`/orders/${order.id}/cancel`, { method: "POST", role: "customer" });
-      setOrder(done);
-      setCancelling(false);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -552,41 +537,9 @@ export default function OrdersPage() {
           )}
         </div>
       ) : (
-        <>
-          <p className="mt-6 text-center text-sm text-muted">
-            You&apos;ll get a notification the moment your order is ready for pickup.
-          </p>
-
-          {order.rawStatus === "waiting" && (
-            <div className="mt-4 text-center">
-              {cancelling ? (
-                <div className="inline-flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5">
-                  <span className="text-sm text-foreground">Cancel this order?</span>
-                  <button
-                    onClick={cancelOrder}
-                    disabled={busy}
-                    className="rounded-full bg-delayed px-3 py-1 text-xs text-paper hover:opacity-90 disabled:opacity-60"
-                  >
-                    Yes, cancel
-                  </button>
-                  <button
-                    onClick={() => setCancelling(false)}
-                    className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
-                  >
-                    Keep it
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setCancelling(true)}
-                  className="text-sm text-delayed hover:underline"
-                >
-                  Cancel order
-                </button>
-              )}
-            </div>
-          )}
-        </>
+        <p className="mt-6 text-center text-sm text-muted">
+          You&apos;ll get a notification the moment your order is ready for pickup.
+        </p>
       )}
     </PageShell>
   );

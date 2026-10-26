@@ -37,6 +37,28 @@ const emptyForm = {
   description: "",
 };
 
+// Total number of items in an order
+function itemCount(order) {
+  return (order.items || []).reduce((sum, i) => sum + (i.qty ?? i.quantity ?? 0), 0);
+}
+
+// Shows the name and quantity of every item in an order
+function OrderItems({ items }) {
+  if (!items || items.length === 0) {
+    return <span className="text-muted">No items</span>;
+  }
+  return (
+    <ul className="space-y-0.5">
+      {items.map((i, idx) => (
+        <li key={i.id ?? i.menuItemId ?? idx} className="flex gap-1.5">
+          <span className="font-medium text-pine">{i.qty ?? i.quantity}×</span>
+          <span>{i.name || i.itemName || i.item_name || "Unnamed item"}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function StaffDashboard() {
   const { user, loading } = useSession("staff");
   const [activeTab, setActiveTab] = useState("Queue");
@@ -261,10 +283,7 @@ export default function StaffDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
-          <ProfileMenu
-            user={user}
-            profileHref="/staff/profile"
-          />
+          <ProfileMenu user={user} profileHref="/staff/profile" />
 
           <SettingsMenu logoutHref="/staff/login" role="staff" />
         </div>
@@ -303,12 +322,11 @@ export default function StaffDashboard() {
               </button>
             </p>
           )}
+
           {/* ================= QUEUE ================= */}
           {activeTab === "Queue" && (
             <>
-              <h1 className="font-display text-2xl text-pine">
-                Active queue
-              </h1>
+              <h1 className="font-display text-2xl text-pine">Active queue</h1>
 
               <p className="mt-1 text-sm text-muted">
                 Update an order&apos;s status and payment as it moves through
@@ -319,39 +337,14 @@ export default function StaffDashboard() {
                 <table className="w-full text-sm">
                   <thead className="bg-card text-left text-muted">
                     <tr>
-                      <th className="px-3 py-3 font-medium">
-                        Order
-                      </th>
-
-                      <th className="px-3 py-3 font-medium">
-                        Customer
-                      </th>
-
-                      <th className="px-3 py-3 font-medium">
-                        Table
-                      </th>
-
-                      <th className="px-3 py-3 font-medium">
-                        Type
-                      </th>
-
-                      <th className="px-3 py-3 font-medium">
-                        Items
-                      </th>
-
-                      <th className="px-3 py-3 font-medium">
-                        Time
-                      </th>
-
-                      <th className="px-3 py-3 font-medium">
-                        Status
-                      </th>
-
-                      {/* STAFF-ONLY PAYMENT COLUMN */}
-                      <th className="px-3 py-3 font-medium">
-                        Payment
-                      </th>
-
+                      <th className="px-3 py-3 font-medium">Order</th>
+                      <th className="px-3 py-3 font-medium">Customer</th>
+                      <th className="px-3 py-3 font-medium">Table</th>
+                      <th className="px-3 py-3 font-medium">Type</th>
+                      <th className="px-3 py-3 font-medium">Items</th>
+                      <th className="px-3 py-3 font-medium">Time</th>
+                      <th className="px-3 py-3 font-medium">Status</th>
+                      <th className="px-3 py-3 font-medium">Payment</th>
                       <th className="px-3 py-3 font-medium"></th>
                     </tr>
                   </thead>
@@ -366,27 +359,16 @@ export default function StaffDashboard() {
                     )}
                     {queue.map((order) => {
                       const status = statusStyles[order.status] || statusStyles.waiting;
-
                       const type =
-                        orderTypeStyles[order.orderType] ||
-                        orderTypeStyles["dine-in"];
+                        orderTypeStyles[order.orderType] || orderTypeStyles["dine-in"];
 
                       return (
-                        <tr
-                          key={order.id}
-                          className="border-t border-border"
-                        >
-                          <td className="px-3 py-3 font-medium">
-                            {order.id}
-                          </td>
+                        <tr key={order.id} className="border-t border-border align-top">
+                          <td className="px-3 py-3 font-medium">{order.id}</td>
 
-                          <td className="px-3 py-3">
-                            {order.customer}
-                          </td>
+                          <td className="px-3 py-3">{order.customer}</td>
 
-                          <td className="px-3 py-3">
-                            {order.table || "—"}
-                          </td>
+                          <td className="px-3 py-3">{order.table || "—"}</td>
 
                           <td className="px-3 py-3">
                             <span
@@ -396,8 +378,13 @@ export default function StaffDashboard() {
                             </span>
                           </td>
 
-                          <td className="px-3 py-3">
-                            {order.items.reduce((sum, i) => sum + i.qty, 0)}
+                          {/* ITEMS: names + quantities */}
+                          <td className="min-w-[180px] px-3 py-3">
+                            <OrderItems items={order.items} />
+                            <p className="mt-1 text-xs text-muted">
+                              Total: {itemCount(order)}{" "}
+                              {itemCount(order) === 1 ? "item" : "items"}
+                            </p>
                           </td>
 
                           <td className="px-3 py-3 text-muted">
@@ -412,7 +399,7 @@ export default function StaffDashboard() {
                             </span>
                           </td>
 
-                          {/* ================= PAYMENT ================= */}
+                          {/* PAYMENT */}
                           <td className="px-3 py-3">
                             <div className="flex flex-wrap items-center gap-2">
                               <span
@@ -426,19 +413,15 @@ export default function StaffDashboard() {
                               </span>
 
                               <button
-                                onClick={() =>
-                                  togglePayment(order)
-                                }
+                                onClick={() => togglePayment(order)}
                                 className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
                               >
-                                {order.isPaid
-                                  ? "Mark unpaid"
-                                  : "Mark paid"}
+                                {order.isPaid ? "Mark unpaid" : "Mark paid"}
                               </button>
                             </div>
                           </td>
 
-                          {/* STATUS BUTTON */}
+                          {/* STATUS BUTTONS */}
                           <td className="px-3 py-3 text-right">
                             <div className="flex flex-wrap justify-end gap-2">
                               {order.rawStatus !== "ready" && (
@@ -501,9 +484,13 @@ export default function StaffDashboard() {
                         </span>
                         <span>Table: {order.table || "—"}</span>
                         <span>
-                          · {order.items.reduce((sum, i) => sum + i.qty, 0)}{" "}
-                          {order.items.reduce((sum, i) => sum + i.qty, 0) === 1 ? "item" : "items"}
+                          · {itemCount(order)} {itemCount(order) === 1 ? "item" : "items"}
                         </span>
+                      </div>
+
+                      {/* ITEMS: names + quantities */}
+                      <div className="mt-3 rounded-lg bg-paper px-3 py-2">
+                        <OrderItems items={order.items} />
                       </div>
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -552,13 +539,10 @@ export default function StaffDashboard() {
             <>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h1 className="font-display text-2xl text-pine">
-                    Menu items
-                  </h1>
+                  <h1 className="font-display text-2xl text-pine">Menu items</h1>
 
                   <p className="mt-1 text-sm text-muted">
-                    Toggle availability, edit details, or add and remove
-                    items.
+                    Toggle availability, edit details, or add and remove items.
                   </p>
                 </div>
 
@@ -583,24 +567,14 @@ export default function StaffDashboard() {
                     type="text"
                     placeholder="Item name"
                     value={addForm.name}
-                    onChange={(e) =>
-                      setAddForm({
-                        ...addForm,
-                        name: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                     required
                   />
 
                   <select
                     value={addForm.category || menuCategories[0] || ""}
-                    onChange={(e) =>
-                      setAddForm({
-                        ...addForm,
-                        category: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                   >
                     {menuCategories.map((cat) => (
@@ -615,12 +589,7 @@ export default function StaffDashboard() {
                     min="0"
                     placeholder="Price (Nu.)"
                     value={addForm.price}
-                    onChange={(e) =>
-                      setAddForm({
-                        ...addForm,
-                        price: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setAddForm({ ...addForm, price: e.target.value })}
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                     required
                   />
@@ -629,12 +598,7 @@ export default function StaffDashboard() {
                     type="text"
                     placeholder="Prep time (e.g. 10 min)"
                     value={addForm.prepTime}
-                    onChange={(e) =>
-                      setAddForm({
-                        ...addForm,
-                        prepTime: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setAddForm({ ...addForm, prepTime: e.target.value })}
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                   />
 
@@ -642,12 +606,7 @@ export default function StaffDashboard() {
                     type="text"
                     placeholder="Description"
                     value={addForm.description}
-                    onChange={(e) =>
-                      setAddForm({
-                        ...addForm,
-                        description: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm sm:col-span-2"
                   />
 
@@ -673,22 +632,14 @@ export default function StaffDashboard() {
                         <input
                           type="text"
                           value={editForm.name}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              name: e.target.value,
-                            })
-                          }
+                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
 
                         <select
                           value={editForm.category}
                           onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              category: e.target.value,
-                            })
+                            setEditForm({ ...editForm, category: e.target.value })
                           }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         >
@@ -703,12 +654,7 @@ export default function StaffDashboard() {
                           type="number"
                           min="0"
                           value={editForm.price}
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              price: e.target.value,
-                            })
-                          }
+                          onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
 
@@ -716,10 +662,7 @@ export default function StaffDashboard() {
                           type="text"
                           value={editForm.prepTime}
                           onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              prepTime: e.target.value,
-                            })
+                            setEditForm({ ...editForm, prepTime: e.target.value })
                           }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
@@ -728,10 +671,7 @@ export default function StaffDashboard() {
                           type="text"
                           value={editForm.description}
                           onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              description: e.target.value,
-                            })
+                            setEditForm({ ...editForm, description: e.target.value })
                           }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm sm:col-span-2"
                         />
@@ -755,27 +695,20 @@ export default function StaffDashboard() {
                     ) : removingId === item.id ? (
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-foreground">
-                          Remove{" "}
-                          <span className="font-medium">
-                            {item.name}
-                          </span>{" "}
-                          from the menu?
+                          Remove <span className="font-medium">{item.name}</span> from the
+                          menu?
                         </p>
 
                         <div className="flex gap-2">
                           <button
-                            onClick={() =>
-                              confirmRemove(item.id)
-                            }
+                            onClick={() => confirmRemove(item.id)}
                             className="rounded-full bg-delayed px-3 py-1 text-xs text-paper hover:opacity-90"
                           >
                             Yes, remove
                           </button>
 
                           <button
-                            onClick={() =>
-                              setRemovingId(null)
-                            }
+                            onClick={() => setRemovingId(null)}
                             className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
                           >
                             Cancel
@@ -785,9 +718,7 @@ export default function StaffDashboard() {
                     ) : (
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-medium">
-                            {item.name}
-                          </p>
+                          <p className="font-medium">{item.name}</p>
 
                           <p className="text-sm text-muted">
                             {item.category} · Nu. {item.price}
@@ -797,18 +728,14 @@ export default function StaffDashboard() {
 
                         <div className="flex flex-wrap items-center gap-2">
                           <button
-                            onClick={() =>
-                              toggleAvailability(item)
-                            }
+                            onClick={() => toggleAvailability(item)}
                             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                               item.available
                                 ? "bg-ready/15 text-ready hover:bg-ready/25"
                                 : "bg-delayed/15 text-delayed hover:bg-delayed/25"
                             }`}
                           >
-                            {item.available
-                              ? "Available"
-                              : "Sold out"}
+                            {item.available ? "Available" : "Sold out"}
                           </button>
 
                           <button
@@ -839,37 +766,29 @@ export default function StaffDashboard() {
           {/* ================= FEEDBACK ================= */}
           {activeTab === "Feedback" && (
             <>
-              <h1 className="font-display text-2xl text-pine">
-                Customer feedback
-              </h1>
+              <h1 className="font-display text-2xl text-pine">Customer feedback</h1>
 
               <p className="mt-1 text-sm text-muted">
-                Anonymous ratings and comments left by customers — no names
-                are attached to any entry.
+                Anonymous ratings and comments left by customers — no names are
+                attached to any entry.
               </p>
 
               {feedbackEntries.length > 0 && (
                 <div className="mt-4 flex items-center gap-2">
                   <span className="text-lg text-amber">★</span>
 
-                  <span className="font-display text-lg text-pine">
-                    {averageRating}
-                  </span>
+                  <span className="font-display text-lg text-pine">{averageRating}</span>
 
                   <span className="text-sm text-muted">
                     average from {feedback.count}{" "}
-                    {feedback.count === 1
-                      ? "review"
-                      : "reviews"}
+                    {feedback.count === 1 ? "review" : "reviews"}
                   </span>
                 </div>
               )}
 
               <div className="mt-6 space-y-2">
                 {feedbackEntries.length === 0 ? (
-                  <p className="text-sm text-muted">
-                    No feedback yet.
-                  </p>
+                  <p className="text-sm text-muted">No feedback yet.</p>
                 ) : (
                   feedbackEntries.map((entry) => (
                     <div
@@ -881,11 +800,7 @@ export default function StaffDashboard() {
                           {[1, 2, 3, 4, 5].map((n) => (
                             <span
                               key={n}
-                              className={
-                                n <= entry.rating
-                                  ? "text-amber"
-                                  : "text-border"
-                              }
+                              className={n <= entry.rating ? "text-amber" : "text-border"}
                             >
                               ★
                             </span>
@@ -901,9 +816,7 @@ export default function StaffDashboard() {
                         {entry.comment ? (
                           entry.comment
                         ) : (
-                          <span className="italic text-muted">
-                            No comment left.
-                          </span>
+                          <span className="italic text-muted">No comment left.</span>
                         )}
                       </p>
                     </div>
@@ -914,9 +827,7 @@ export default function StaffDashboard() {
           )}
 
           {/* ================= NOTIFICATIONS ================= */}
-          {activeTab === "Notifications" && (
-            <StaffNotificationSidebar />
-          )}
+          {activeTab === "Notifications" && <StaffNotificationSidebar />}
         </main>
       </div>
     </div>
