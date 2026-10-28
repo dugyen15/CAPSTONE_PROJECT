@@ -5,7 +5,7 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <main className="flex-1">
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-card via-paper to-amber/10 px-6 text-center">
+      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-card via-paper to-amber/10 px-6 pb-20 pt-10 text-center">
         <div className="relative z-10 flex w-full max-w-2xl flex-col items-center">
           <p className="text-sm uppercase tracking-[0.2em] text-amber">
             Welcome to
@@ -77,22 +77,22 @@ export default function HomePage() {
         </div>
 
         <a
-          href="#about"
-          className="absolute bottom-8 z-10 flex flex-col items-center gap-1 text-xs text-muted/70 hover:text-foreground transition-colors"
-        >
-          About CST Cafe
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4 animate-bounce"
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </a>
+  href="#about"
+  className="relative z-10 mt-10 flex flex-col items-center gap-1 text-xs text-muted/70 hover:text-foreground transition-colors"
+>
+  About CST Cafe
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-4 w-4 animate-bounce"
+  >
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+</a>
       </section>
 
       <section id="about" className="border-t border-border bg-paper px-6 py-16 sm:py-20">
