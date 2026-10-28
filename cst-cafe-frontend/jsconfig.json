@@ -1,10 +1,7 @@
-@'
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     }
   }
 }
-'@ | Set-Content cst-cafe-frontend/jsconfig.json
