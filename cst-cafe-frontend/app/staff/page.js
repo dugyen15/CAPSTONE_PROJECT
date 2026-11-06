@@ -9,7 +9,7 @@ import StaffNotificationSidebar from "@/components/StaffNotificationSidebar";
 import ProfileMenu from "@/components/ProfileMenu";
 import SettingsMenu from "@/components/SettingsMenu";
 
-const tabs = ["Queue", "Menu", "Feedback", "Notifications"];
+const tabs = ["Queue", "Menu", "Feedback", "Notifications", "Invite Staff"];
 
 // The next step for an order, based on where it really is in the kitchen
 const nextStep = {
@@ -39,7 +39,10 @@ const emptyForm = {
 
 // Total number of items in an order
 function itemCount(order) {
-  return (order.items || []).reduce((sum, i) => sum + (i.qty ?? i.quantity ?? 0), 0);
+  return (order.items || []).reduce(
+    (sum, i) => sum + (i.qty ?? i.quantity ?? 0),
+    0
+  );
 }
 
 // Shows the name and quantity of every item in an order
@@ -47,11 +50,17 @@ function OrderItems({ items }) {
   if (!items || items.length === 0) {
     return <span className="text-muted">No items</span>;
   }
+
   return (
     <ul className="space-y-0.5">
       {items.map((i, idx) => (
-        <li key={i.id ?? i.menuItemId ?? idx} className="flex gap-1.5">
-          <span className="font-medium text-pine">{i.qty ?? i.quantity}×</span>
+        <li
+          key={i.id ?? i.menuItemId ?? idx}
+          className="flex gap-1.5"
+        >
+          <span className="font-medium text-pine">
+            {i.qty ?? i.quantity}×
+          </span>
           <span>{i.name || i.itemName || i.item_name || "Unnamed item"}</span>
         </li>
       ))}
@@ -61,11 +70,17 @@ function OrderItems({ items }) {
 
 export default function StaffDashboard() {
   const { user, loading } = useSession("staff");
+
   const [activeTab, setActiveTab] = useState("Queue");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   const [queue, setQueue] = useState([]);
+
+  // --- Staff invitation state ---
+  const [invitationEmail, setInvitationEmail] = useState("");
+  const [invitationCode, setInvitationCode] = useState("");
+  const [sendingInvitation, setSendingInvitation] = useState(false);
 
   // --- Menu management state ---
   const [items, setItems] = useState([]);
@@ -76,20 +91,70 @@ export default function StaffDashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState(emptyForm);
 
-  const [feedback, setFeedback] = useState({ count: 0, average: null, items: [] });
+  const [feedback, setFeedback] = useState({
+    count: 0,
+    average: null,
+    items: [],
+  });
 
   const menuCategories = categoryList.map((c) => c.name);
   const feedbackEntries = feedback.items;
-  const averageRating = feedback.average === null ? null : feedback.average.toFixed(1);
+  const averageRating =
+    feedback.average === null ? null : feedback.average.toFixed(1);
 
   // Runs a request, shows its error (if any) at the top of the page
   async function run(fn) {
     setError("");
+
     try {
       return await fn();
     } catch (err) {
       setError(err.message);
       return undefined;
+    }
+  }
+
+  // Generate an invitation code for a new staff member
+  async function sendInvitation(e) {
+    e.preventDefault();
+
+    setError("");
+    setNotice("");
+    setInvitationCode("");
+
+    const email = invitationEmail.trim().toLowerCase();
+
+    if (!email) {
+      setError("Please enter the staff member's email address.");
+      return;
+    }
+
+    setSendingInvitation(true);
+
+    try {
+      const result = await api("/staff/auth/invitations", {
+        method: "POST",
+        role: "staff",
+        body: { email },
+      });
+
+      setInvitationCode(result.invitationCode);
+      setNotice(`Invitation code generated for ${result.email}.`);
+    } catch (err) {
+      setError(err.message || "Could not generate the invitation code.");
+    } finally {
+      setSendingInvitation(false);
+    }
+  }
+
+  // Copy the generated invitation code
+  async function copyInvitationCode() {
+    try {
+      await navigator.clipboard.writeText(invitationCode);
+      setNotice("Invitation code copied successfully!");
+      setError("");
+    } catch {
+      setError("Unable to copy the code. Please copy it manually.");
     }
   }
 
@@ -104,14 +169,18 @@ export default function StaffDashboard() {
   // Live queue: load now, then every 8 seconds
   useEffect(() => {
     if (!user) return;
+
     loadQueue();
+
     const timer = setInterval(loadQueue, 8000);
+
     return () => clearInterval(timer);
   }, [user, loadQueue]);
 
   // Menu and categories
   useEffect(() => {
     if (!user) return;
+
     Promise.all([api("/menu"), api("/menu/categories")])
       .then(([menu, cats]) => {
         setItems(menu);
@@ -123,6 +192,7 @@ export default function StaffDashboard() {
   // Feedback: refresh whenever that tab is opened
   useEffect(() => {
     if (!user || activeTab !== "Feedback") return;
+
     api("/feedback", { role: "staff" })
       .then(setFeedback)
       .catch((err) => setError(err.message));
@@ -144,6 +214,7 @@ export default function StaffDashboard() {
         body: { status: nextStep[order.rawStatus] },
       })
     );
+
     if (updated) replaceOrder(updated);
     else loadQueue();
   }
@@ -156,6 +227,7 @@ export default function StaffDashboard() {
         body: { isDelayed: !order.isDelayed },
       })
     );
+
     if (updated) replaceOrder(updated);
   }
 
@@ -168,11 +240,14 @@ export default function StaffDashboard() {
         body: { isPaid: !order.isPaid },
       })
     );
+
     if (updated) replaceOrder(updated);
   }
 
   function replaceItem(updated) {
-    setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    setItems((prev) =>
+      prev.map((item) => (item.id === updated.id ? updated : item))
+    );
   }
 
   async function toggleAvailability(item) {
@@ -183,6 +258,7 @@ export default function StaffDashboard() {
         body: { available: !item.available },
       })
     );
+
     if (updated) replaceItem(updated);
   }
 
@@ -220,6 +296,7 @@ export default function StaffDashboard() {
         },
       })
     );
+
     if (updated) {
       replaceItem(updated);
       setEditingId(null);
@@ -227,17 +304,28 @@ export default function StaffDashboard() {
   }
 
   async function confirmRemove(id) {
-    const result = await run(() => api(`/menu/${id}`, { method: "DELETE", role: "staff" }));
+    const result = await run(() =>
+      api(`/menu/${id}`, {
+        method: "DELETE",
+        role: "staff",
+      })
+    );
+
     if (!result) return;
+
     if (result.removed) {
       setItems((prev) => prev.filter((item) => item.id !== id));
     } else {
       // Items that appear in past orders are hidden (sold out) instead of deleted
       setItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, available: false } : item))
+        prev.map((item) =>
+          item.id === id ? { ...item, available: false } : item
+        )
       );
+
       setNotice(result.message);
     }
+
     setRemovingId(null);
   }
 
@@ -259,6 +347,7 @@ export default function StaffDashboard() {
         },
       })
     );
+
     if (created) {
       setItems((prev) => [...prev, created]);
       setAddForm(emptyForm);
@@ -284,7 +373,6 @@ export default function StaffDashboard() {
 
         <div className="flex items-center gap-3">
           <ProfileMenu user={user} profileHref="/staff/profile" />
-
           <SettingsMenu logoutHref="/staff/login" role="staff" />
         </div>
       </header>
@@ -314,10 +402,14 @@ export default function StaffDashboard() {
               {error}
             </p>
           )}
+
           {notice && (
             <p className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground">
               <span>{notice}</span>
-              <button onClick={() => setNotice("")} className="text-xs text-muted hover:underline">
+              <button
+                onClick={() => setNotice("")}
+                className="text-xs text-muted hover:underline"
+              >
                 Dismiss
               </button>
             </p>
@@ -352,19 +444,30 @@ export default function StaffDashboard() {
                   <tbody>
                     {queue.length === 0 && (
                       <tr>
-                        <td colSpan={9} className="px-3 py-6 text-center text-muted">
+                        <td
+                          colSpan={9}
+                          className="px-3 py-6 text-center text-muted"
+                        >
                           No active orders right now.
                         </td>
                       </tr>
                     )}
+
                     {queue.map((order) => {
-                      const status = statusStyles[order.status] || statusStyles.waiting;
+                      const status =
+                        statusStyles[order.status] || statusStyles.waiting;
                       const type =
-                        orderTypeStyles[order.orderType] || orderTypeStyles["dine-in"];
+                        orderTypeStyles[order.orderType] ||
+                        orderTypeStyles["dine-in"];
 
                       return (
-                        <tr key={order.id} className="border-t border-border align-top">
-                          <td className="px-3 py-3 font-medium">{order.id}</td>
+                        <tr
+                          key={order.id}
+                          className="border-t border-border align-top"
+                        >
+                          <td className="px-3 py-3 font-medium">
+                            {order.id}
+                          </td>
 
                           <td className="px-3 py-3">{order.customer}</td>
 
@@ -432,6 +535,7 @@ export default function StaffDashboard() {
                                   {order.isDelayed ? "Clear delay" : "Delay"}
                                 </button>
                               )}
+
                               <button
                                 onClick={() => advanceStatus(order)}
                                 className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
@@ -454,9 +558,14 @@ export default function StaffDashboard() {
                     No active orders right now.
                   </p>
                 )}
+
                 {queue.map((order) => {
-                  const status = statusStyles[order.status] || statusStyles.waiting;
-                  const type = orderTypeStyles[order.orderType] || orderTypeStyles["dine-in"];
+                  const status =
+                    statusStyles[order.status] || statusStyles.waiting;
+                  const type =
+                    orderTypeStyles[order.orderType] ||
+                    orderTypeStyles["dine-in"];
+
                   return (
                     <div
                       key={order.id}
@@ -469,6 +578,7 @@ export default function StaffDashboard() {
                             {order.customer} · {formatTime(order.createdAt)}
                           </p>
                         </div>
+
                         <span
                           className={`rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}
                         >
@@ -484,7 +594,8 @@ export default function StaffDashboard() {
                         </span>
                         <span>Table: {order.table || "—"}</span>
                         <span>
-                          · {itemCount(order)} {itemCount(order) === 1 ? "item" : "items"}
+                          · {itemCount(order)}{" "}
+                          {itemCount(order) === 1 ? "item" : "items"}
                         </span>
                       </div>
 
@@ -503,6 +614,7 @@ export default function StaffDashboard() {
                         >
                           {order.isPaid ? "Paid" : "Unpaid"}
                         </span>
+
                         <button
                           onClick={() => togglePayment(order)}
                           className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
@@ -520,6 +632,7 @@ export default function StaffDashboard() {
                             {order.isDelayed ? "Clear delay" : "Delay"}
                           </button>
                         )}
+
                         <button
                           onClick={() => advanceStatus(order)}
                           className="rounded-full border border-border px-3 py-1 text-xs hover:border-pine/40"
@@ -539,7 +652,9 @@ export default function StaffDashboard() {
             <>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h1 className="font-display text-2xl text-pine">Menu items</h1>
+                  <h1 className="font-display text-2xl text-pine">
+                    Menu items
+                  </h1>
 
                   <p className="mt-1 text-sm text-muted">
                     Toggle availability, edit details, or add and remove items.
@@ -567,14 +682,18 @@ export default function StaffDashboard() {
                     type="text"
                     placeholder="Item name"
                     value={addForm.name}
-                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, name: e.target.value })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                     required
                   />
 
                   <select
                     value={addForm.category || menuCategories[0] || ""}
-                    onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, category: e.target.value })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                   >
                     {menuCategories.map((cat) => (
@@ -589,7 +708,9 @@ export default function StaffDashboard() {
                     min="0"
                     placeholder="Price (Nu.)"
                     value={addForm.price}
-                    onChange={(e) => setAddForm({ ...addForm, price: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, price: e.target.value })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                     required
                   />
@@ -598,7 +719,9 @@ export default function StaffDashboard() {
                     type="text"
                     placeholder="Prep time (e.g. 10 min)"
                     value={addForm.prepTime}
-                    onChange={(e) => setAddForm({ ...addForm, prepTime: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, prepTime: e.target.value })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                   />
 
@@ -606,7 +729,9 @@ export default function StaffDashboard() {
                     type="text"
                     placeholder="Description"
                     value={addForm.description}
-                    onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, description: e.target.value })
+                    }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm sm:col-span-2"
                   />
 
@@ -632,14 +757,22 @@ export default function StaffDashboard() {
                         <input
                           type="text"
                           value={editForm.name}
-                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              name: e.target.value,
+                            })
+                          }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
 
                         <select
                           value={editForm.category}
                           onChange={(e) =>
-                            setEditForm({ ...editForm, category: e.target.value })
+                            setEditForm({
+                              ...editForm,
+                              category: e.target.value,
+                            })
                           }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         >
@@ -654,7 +787,12 @@ export default function StaffDashboard() {
                           type="number"
                           min="0"
                           value={editForm.price}
-                          onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              price: e.target.value,
+                            })
+                          }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
 
@@ -662,7 +800,10 @@ export default function StaffDashboard() {
                           type="text"
                           value={editForm.prepTime}
                           onChange={(e) =>
-                            setEditForm({ ...editForm, prepTime: e.target.value })
+                            setEditForm({
+                              ...editForm,
+                              prepTime: e.target.value,
+                            })
                           }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm"
                         />
@@ -671,7 +812,10 @@ export default function StaffDashboard() {
                           type="text"
                           value={editForm.description}
                           onChange={(e) =>
-                            setEditForm({ ...editForm, description: e.target.value })
+                            setEditForm({
+                              ...editForm,
+                              description: e.target.value,
+                            })
                           }
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm sm:col-span-2"
                         />
@@ -695,8 +839,8 @@ export default function StaffDashboard() {
                     ) : removingId === item.id ? (
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <p className="text-sm text-foreground">
-                          Remove <span className="font-medium">{item.name}</span> from the
-                          menu?
+                          Remove <span className="font-medium">{item.name}</span>{" "}
+                          from the menu?
                         </p>
 
                         <div className="flex gap-2">
@@ -766,7 +910,9 @@ export default function StaffDashboard() {
           {/* ================= FEEDBACK ================= */}
           {activeTab === "Feedback" && (
             <>
-              <h1 className="font-display text-2xl text-pine">Customer feedback</h1>
+              <h1 className="font-display text-2xl text-pine">
+                Customer feedback
+              </h1>
 
               <p className="mt-1 text-sm text-muted">
                 Anonymous ratings and comments left by customers — no names are
@@ -777,7 +923,9 @@ export default function StaffDashboard() {
                 <div className="mt-4 flex items-center gap-2">
                   <span className="text-lg text-amber">★</span>
 
-                  <span className="font-display text-lg text-pine">{averageRating}</span>
+                  <span className="font-display text-lg text-pine">
+                    {averageRating}
+                  </span>
 
                   <span className="text-sm text-muted">
                     average from {feedback.count}{" "}
@@ -800,7 +948,11 @@ export default function StaffDashboard() {
                           {[1, 2, 3, 4, 5].map((n) => (
                             <span
                               key={n}
-                              className={n <= entry.rating ? "text-amber" : "text-border"}
+                              className={
+                                n <= entry.rating
+                                  ? "text-amber"
+                                  : "text-border"
+                              }
                             >
                               ★
                             </span>
@@ -816,7 +968,9 @@ export default function StaffDashboard() {
                         {entry.comment ? (
                           entry.comment
                         ) : (
-                          <span className="italic text-muted">No comment left.</span>
+                          <span className="italic text-muted">
+                            No comment left.
+                          </span>
                         )}
                       </p>
                     </div>
@@ -828,6 +982,92 @@ export default function StaffDashboard() {
 
           {/* ================= NOTIFICATIONS ================= */}
           {activeTab === "Notifications" && <StaffNotificationSidebar />}
+
+          {/* ================= INVITE STAFF ================= */}
+          {activeTab === "Invite Staff" && (
+            <section className="max-w-xl">
+              <h1 className="font-display text-2xl text-pine">
+                Invite a staff member
+              </h1>
+
+              <p className="mt-1 text-sm text-muted">
+                Generate a one-time invitation code for a new staff member.
+              </p>
+
+              <form
+                onSubmit={sendInvitation}
+                className="mt-6 space-y-4 rounded-xl border border-border bg-card p-5"
+              >
+                <div>
+                  <label
+                    htmlFor="invitationEmail"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    Staff email address
+                  </label>
+
+                  <input
+                    id="invitationEmail"
+                    type="email"
+                    required
+                    value={invitationEmail}
+                    onChange={(e) => {
+                      setInvitationEmail(e.target.value);
+                      setInvitationCode("");
+                    }}
+                    placeholder="newstaff@example.com"
+                    className="w-full rounded-lg border border-border bg-paper px-3 py-2 text-sm outline-none focus:border-pine"
+                  />
+                </div>
+
+                <p className="text-xs text-muted">
+                  The invitation code expires after 15 minutes and can only be
+                  used once.
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={sendingInvitation}
+                  className="rounded-full bg-pine px-5 py-2 text-sm font-medium text-paper hover:bg-pine/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {sendingInvitation
+                    ? "Generating..."
+                    : "Generate invitation code"}
+                </button>
+              </form>
+
+              {invitationCode && (
+                <div className="mt-5 rounded-xl border border-border bg-card p-5">
+                  <p className="text-sm font-medium text-pine">
+                    Invitation code generated!
+                  </p>
+
+                  <p className="mt-2 text-xs text-muted">
+                    Share this code with the invited staff member:
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <code className="rounded-lg bg-paper px-4 py-3 text-lg font-bold tracking-widest text-pine">
+                      {invitationCode}
+                    </code>
+
+                    <button
+                      type="button"
+                      onClick={copyInvitationCode}
+                      className="rounded-full border border-border px-4 py-2 text-sm hover:border-pine/40"
+                    >
+                      Copy code
+                    </button>
+                  </div>
+
+                  <p className="mt-3 text-xs text-muted">
+                    This code is valid for 15 minutes and can only be used
+                    once.
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
         </main>
       </div>
     </div>
