@@ -19,9 +19,10 @@ app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '100kb' }));
 
 // Routes
+// Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/staff/auth', require('./routes/staffAuth'));
-app.use('/api/menu', require('./routes/menu'));
+app.use('/api/admin/auth', require('./routes/adminAuth'));
 app.use('/api/tables', require('./routes/tables'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/bookings', require('./routes/bookings'));

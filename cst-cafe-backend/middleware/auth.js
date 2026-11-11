@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
 
-// Checks that the request carries a valid login token and remembers who it is.
-// Tokens look like { id, role } where role is 'customer' or 'staff'.
+// Checks whether the request contains a valid login token.
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = header.startsWith('Bearer ')
+    ? header.slice(7)
+    : null;
 
   if (!token) {
     return res.status(401).json({ error: 'Login required' });
@@ -12,29 +13,63 @@ function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    if (!Number.isInteger(payload.id) || !['customer', 'staff'].includes(payload.role)) {
+
+    if (
+      !Number.isInteger(payload.id) ||
+      !['customer', 'staff', 'admin'].includes(payload.role)
+    ) {
       return res.status(401).json({ error: 'Invalid token' });
     }
-    req.user = { id: payload.id, role: payload.role };
+
+    req.user = {
+      id: payload.id,
+      role: payload.role,
+    };
+
     next();
   } catch (err) {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({
+      error: 'Invalid or expired token',
+    });
   }
 }
 
-// Use after requireAuth.
+// Customer-only access
 function requireCustomer(req, res, next) {
   if (req.user?.role !== 'customer') {
-    return res.status(403).json({ error: 'Customer account required' });
+    return res.status(403).json({
+      error: 'Customer account required',
+    });
   }
+
   next();
 }
 
+// Staff-only access
 function requireStaff(req, res, next) {
   if (req.user?.role !== 'staff') {
-    return res.status(403).json({ error: 'Staff access required' });
+    return res.status(403).json({
+      error: 'Staff access required',
+    });
   }
+
   next();
 }
 
-module.exports = { requireAuth, requireCustomer, requireStaff };
+// Admin-only access
+function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({
+      error: 'Admin access required',
+    });
+  }
+
+  next();
+}
+
+module.exports = {
+  requireAuth,
+  requireCustomer,
+  requireStaff,
+  requireAdmin,
+};
