@@ -1,9 +1,45 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const { pool, tx } = require('../db');
 const { HttpError, parseId, str, pick } = require('../lib/http');
 const { requireAuth, requireStaff } = require('../middleware/auth');
 
 const router = express.Router();
+
+// ---------------------------------------------------------------------------
+// Image uploads
+// ---------------------------------------------------------------------------
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'menu');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const EXT = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => cb(null, crypto.randomUUID() + EXT[file.mimetype]),
+  }),
+  limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (!EXT[file.mimetype]) {
+      return cb(new HttpError(400, 'Image must be a JPG, PNG or WebP file'));
+    }
+    cb(null, true);
+  },
+});
+
+// Delete a locally stored image (ignores external URLs and missing files)
+function deleteUploadedFile(url) {
+  if (!url || !url.startsWith('/uploads/menu/')) return;
+  fs.unlink(path.join(UPLOAD_DIR, path.basename(url)), () => {});
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
 
 // Same field names as the frontend's mock-data.js, so wiring it up is a drop-in swap.
 const ITEM_SELECT = `
@@ -48,6 +84,10 @@ async function resolveCategoryId(db, body) {
   return found.rows[0].id;
 }
 
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
 // GET /api/menu/categories
 router.get('/categories', async (req, res) => {
   const result = await pool.query('SELECT id, name FROM categories ORDER BY sort_order, name');
@@ -79,75 +119,103 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/menu   (staff only)
-// Body: { name, price, category | categoryId, description?, prepTime?, image?, available? }
-router.post('/', requireAuth, requireStaff, async (req, res) => {
-  const body = req.body ?? {};
-  const name = cleanName(body.name);
-  const price = cleanPrice(body.price);
-  const categoryId = await resolveCategoryId(pool, body);
-  const description = cleanOptionalText(body.description, 'Description', 1000);
-  const prepTime = cleanOptionalText(body.prepTime ?? body.prep_time, 'Prep time', 30);
-  const image = cleanOptionalText(pick(body, 'image', 'imageUrl', 'image_url'), 'Image URL', 2000);
-  const available = body.available === undefined ? true : body.available === true;
+// Accepts JSON or multipart/form-data.
+// Fields: name, price, category | categoryId, description?, prepTime?, available?
+// Picture: file field "image" (JPG/PNG/WebP, max 2 MB), or a text "image" URL.
+// Auth runs BEFORE multer so anonymous users can't upload files.
+router.post('/', requireAuth, requireStaff, upload.single('image'), async (req, res) => {
+  const uploaded = req.file ? `/uploads/menu/${req.file.filename}` : null;
+  try {
+    const body = req.body ?? {};
+    const name = cleanName(body.name);
+    const price = cleanPrice(body.price);
+    const categoryId = await resolveCategoryId(pool, body);
+    const description = cleanOptionalText(body.description, 'Description', 1000);
+    const prepTime = cleanOptionalText(body.prepTime ?? body.prep_time, 'Prep time', 30);
+    const image =
+      uploaded ?? cleanOptionalText(pick(body, 'image', 'imageUrl', 'image_url'), 'Image URL', 2000);
+    const available = body.available === undefined ? true : body.available === true;
 
-  const inserted = await pool.query(
-    `INSERT INTO menu_items (category_id, name, description, price, image_url, prep_time, is_available)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-    [categoryId, name, description, price, image, prepTime, available]
-  );
-  const result = await pool.query(`${ITEM_SELECT} WHERE mi.id = $1`, [inserted.rows[0].id]);
-  res.status(201).json(result.rows[0]);
+    const inserted = await pool.query(
+      `INSERT INTO menu_items (category_id, name, description, price, image_url, prep_time, is_available)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [categoryId, name, description, price, image, prepTime, available]
+    );
+    const result = await pool.query(`${ITEM_SELECT} WHERE mi.id = $1`, [inserted.rows[0].id]);
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    deleteUploadedFile(uploaded); // don't leave orphan files if validation fails
+    throw err;
+  }
 });
 
 // PUT /api/menu/:id   (staff only) - send only the fields you want to change
-router.put('/:id', requireAuth, requireStaff, async (req, res) => {
-  const id = parseId(req.params.id);
-  const body = req.body ?? {};
+// Accepts JSON or multipart/form-data. A new "image" file replaces the old picture.
+router.put('/:id', requireAuth, requireStaff, upload.single('image'), async (req, res) => {
+  const uploaded = req.file ? `/uploads/menu/${req.file.filename}` : null;
+  let oldImage = null;
 
-  const item = await tx(async (client) => {
-    const current = await client.query('SELECT name, is_available FROM menu_items WHERE id = $1 FOR UPDATE', [id]);
-    if (current.rows.length === 0) throw new HttpError(404, 'Menu item not found');
+  try {
+    const id = parseId(req.params.id);
+    const body = req.body ?? {};
 
-    const sets = [];
-    const params = [];
-    const set = (column, value) => {
-      params.push(value);
-      sets.push(`${column} = $${params.length}`);
-    };
-
-    if (body.name !== undefined) set('name', cleanName(body.name));
-    if (body.price !== undefined) set('price', cleanPrice(body.price));
-    if (body.description !== undefined) set('description', cleanOptionalText(body.description, 'Description', 1000));
-    const prep = body.prepTime ?? body.prep_time;
-    if (prep !== undefined) set('prep_time', cleanOptionalText(prep, 'Prep time', 30));
-    const image = pick(body, 'image', 'imageUrl', 'image_url');
-    if (image !== undefined) set('image_url', cleanOptionalText(image, 'Image URL', 2000));
-    if (body.available !== undefined) {
-      if (typeof body.available !== 'boolean') throw new HttpError(400, 'available must be true or false');
-      set('is_available', body.available);
-    }
-    if (body.category !== undefined || body.categoryId !== undefined || body.category_id !== undefined) {
-      set('category_id', await resolveCategoryId(client, body));
-    }
-    if (sets.length === 0) throw new HttpError(400, 'Nothing to update');
-
-    params.push(id);
-    await client.query(`UPDATE menu_items SET ${sets.join(', ')} WHERE id = $${params.length}`, params);
-
-    // Tell staff when an item has just been marked sold out
-    if (current.rows[0].is_available && body.available === false) {
-      await client.query(
-        `INSERT INTO staff_notifications (kind, title, message, menu_item_id)
-         VALUES ('item_sold_out', 'Item sold out', $1, $2)`,
-        [`${current.rows[0].name} was marked sold out.`, id]
+    const item = await tx(async (client) => {
+      const current = await client.query(
+        'SELECT name, is_available, image_url FROM menu_items WHERE id = $1 FOR UPDATE',
+        [id]
       );
-    }
+      if (current.rows.length === 0) throw new HttpError(404, 'Menu item not found');
+      oldImage = current.rows[0].image_url;
 
-    const updated = await client.query(`${ITEM_SELECT} WHERE mi.id = $1`, [id]);
-    return updated.rows[0];
-  });
+      const sets = [];
+      const params = [];
+      const set = (column, value) => {
+        params.push(value);
+        sets.push(`${column} = $${params.length}`);
+      };
 
-  res.json(item);
+      if (body.name !== undefined) set('name', cleanName(body.name));
+      if (body.price !== undefined) set('price', cleanPrice(body.price));
+      if (body.description !== undefined) set('description', cleanOptionalText(body.description, 'Description', 1000));
+      const prep = body.prepTime ?? body.prep_time;
+      if (prep !== undefined) set('prep_time', cleanOptionalText(prep, 'Prep time', 30));
+
+      const image = pick(body, 'image', 'imageUrl', 'image_url');
+      if (uploaded) set('image_url', uploaded);
+      else if (image !== undefined) set('image_url', cleanOptionalText(image, 'Image URL', 2000));
+
+      if (body.available !== undefined) {
+        if (typeof body.available !== 'boolean') throw new HttpError(400, 'available must be true or false');
+        set('is_available', body.available);
+      }
+      if (body.category !== undefined || body.categoryId !== undefined || body.category_id !== undefined) {
+        set('category_id', await resolveCategoryId(client, body));
+      }
+      if (sets.length === 0) throw new HttpError(400, 'Nothing to update');
+
+      params.push(id);
+      await client.query(`UPDATE menu_items SET ${sets.join(', ')} WHERE id = $${params.length}`, params);
+
+      // Tell staff when an item has just been marked sold out
+      if (current.rows[0].is_available && body.available === false) {
+        await client.query(
+          `INSERT INTO staff_notifications (kind, title, message, menu_item_id)
+           VALUES ('item_sold_out', 'Item sold out', $1, $2)`,
+          [`${current.rows[0].name} was marked sold out.`, id]
+        );
+      }
+
+      const updated = await client.query(`${ITEM_SELECT} WHERE mi.id = $1`, [id]);
+      return updated.rows[0];
+    });
+
+    // The save worked, so the replaced picture is no longer needed
+    if (uploaded && oldImage !== uploaded) deleteUploadedFile(oldImage);
+    res.json(item);
+  } catch (err) {
+    deleteUploadedFile(uploaded); // the save failed, so discard the new upload
+    throw err;
+  }
 });
 
 // DELETE /api/menu/:id   (staff only)
@@ -156,8 +224,12 @@ router.put('/:id', requireAuth, requireStaff, async (req, res) => {
 router.delete('/:id', requireAuth, requireStaff, async (req, res) => {
   const id = parseId(req.params.id);
   try {
-    const result = await pool.query('DELETE FROM menu_items WHERE id = $1 RETURNING id', [id]);
+    const result = await pool.query(
+      'DELETE FROM menu_items WHERE id = $1 RETURNING id, image_url',
+      [id]
+    );
     if (result.rows.length === 0) throw new HttpError(404, 'Menu item not found');
+    deleteUploadedFile(result.rows[0].image_url); // item is gone, remove its picture too
     res.json({ removed: true, hidden: false });
   } catch (err) {
     if (err.code !== '23503') throw err;
