@@ -9,7 +9,7 @@ import StaffNotificationSidebar from "@/components/StaffNotificationSidebar";
 import ProfileMenu from "@/components/ProfileMenu";
 import SettingsMenu from "@/components/SettingsMenu";
 
-const tabs = ["Queue", "Menu", "Feedback", "Notifications", "Invite Staff"];
+const tabs = ["Queue", "Menu", "Feedback", "Notifications"];
 
 // The next step for an order, based on where it really is in the kitchen
 const nextStep = {
@@ -56,10 +56,7 @@ function OrderItems({ items }) {
   return (
     <ul className="space-y-0.5">
       {items.map((i, idx) => (
-        <li
-          key={i.id ?? i.menuItemId ?? idx}
-          className="flex gap-1.5"
-        >
+        <li key={i.id ?? i.menuItemId ?? idx} className="flex gap-1.5">
           <span className="font-medium text-pine">
             {i.qty ?? i.quantity}×
           </span>
@@ -168,11 +165,6 @@ export default function StaffDashboard() {
 
   const [queue, setQueue] = useState([]);
 
-  // --- Staff invitation state ---
-  const [invitationEmail, setInvitationEmail] = useState("");
-  const [invitationCode, setInvitationCode] = useState("");
-  const [sendingInvitation, setSendingInvitation] = useState(false);
-
   // --- Menu management state ---
   const [items, setItems] = useState([]);
   const [categoryList, setCategoryList] = useState([]);
@@ -207,50 +199,7 @@ export default function StaffDashboard() {
     }
   }
 
-  // Generate an invitation code for a new staff member
-  async function sendInvitation(e) {
-    e.preventDefault();
-
-    setError("");
-    setNotice("");
-    setInvitationCode("");
-
-    const email = invitationEmail.trim().toLowerCase();
-
-    if (!email) {
-      setError("Please enter the staff member's email address.");
-      return;
-    }
-
-    setSendingInvitation(true);
-
-    try {
-      const result = await api("/staff/auth/invitations", {
-        method: "POST",
-        role: "staff",
-        body: { email },
-      });
-
-      setInvitationCode(result.invitationCode);
-      setNotice(`Invitation code generated for ${result.email}.`);
-    } catch (err) {
-      setError(err.message || "Could not generate the invitation code.");
-    } finally {
-      setSendingInvitation(false);
-    }
-  }
-
-  // Copy the generated invitation code
-  async function copyInvitationCode() {
-    try {
-      await navigator.clipboard.writeText(invitationCode);
-      setNotice("Invitation code copied successfully!");
-      setError("");
-    } catch {
-      setError("Unable to copy the code. Please copy it manually.");
-    }
-  }
-
+  // Load active orders from the backend
   const loadQueue = useCallback(async () => {
     try {
       setQueue(await api("/orders", { role: "staff" }));
@@ -1116,92 +1065,6 @@ export default function StaffDashboard() {
 
           {/* ================= NOTIFICATIONS ================= */}
           {activeTab === "Notifications" && <StaffNotificationSidebar />}
-
-          {/* ================= INVITE STAFF ================= */}
-          {activeTab === "Invite Staff" && (
-            <section className="max-w-xl">
-              <h1 className="font-display text-2xl text-pine">
-                Invite a staff member
-              </h1>
-
-              <p className="mt-1 text-sm text-muted">
-                Generate a one-time invitation code for a new staff member.
-              </p>
-
-              <form
-                onSubmit={sendInvitation}
-                className="mt-6 space-y-4 rounded-xl border border-border bg-card p-5"
-              >
-                <div>
-                  <label
-                    htmlFor="invitationEmail"
-                    className="mb-1 block text-sm font-medium"
-                  >
-                    Staff email address
-                  </label>
-
-                  <input
-                    id="invitationEmail"
-                    type="email"
-                    required
-                    value={invitationEmail}
-                    onChange={(e) => {
-                      setInvitationEmail(e.target.value);
-                      setInvitationCode("");
-                    }}
-                    placeholder="newstaff@example.com"
-                    className="w-full rounded-lg border border-border bg-paper px-3 py-2 text-sm outline-none focus:border-pine"
-                  />
-                </div>
-
-                <p className="text-xs text-muted">
-                  The invitation code expires after 15 minutes and can only be
-                  used once.
-                </p>
-
-                <button
-                  type="submit"
-                  disabled={sendingInvitation}
-                  className="rounded-full bg-pine px-5 py-2 text-sm font-medium text-paper hover:bg-pine/90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {sendingInvitation
-                    ? "Generating..."
-                    : "Generate invitation code"}
-                </button>
-              </form>
-
-              {invitationCode && (
-                <div className="mt-5 rounded-xl border border-border bg-card p-5">
-                  <p className="text-sm font-medium text-pine">
-                    Invitation code generated!
-                  </p>
-
-                  <p className="mt-2 text-xs text-muted">
-                    Share this code with the invited staff member:
-                  </p>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <code className="rounded-lg bg-paper px-4 py-3 text-lg font-bold tracking-widest text-pine">
-                      {invitationCode}
-                    </code>
-
-                    <button
-                      type="button"
-                      onClick={copyInvitationCode}
-                      className="rounded-full border border-border px-4 py-2 text-sm hover:border-pine/40"
-                    >
-                      Copy code
-                    </button>
-                  </div>
-
-                  <p className="mt-3 text-xs text-muted">
-                    This code is valid for 15 minutes and can only be used
-                    once.
-                  </p>
-                </div>
-              )}
-            </section>
-          )}
         </main>
       </div>
     </div>
