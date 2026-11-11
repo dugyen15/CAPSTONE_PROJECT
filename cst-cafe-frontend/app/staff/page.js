@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, imageSrc } from "@/lib/api";
 import { useSession } from "@/lib/useSession";
 import { statusStyles } from "@/lib/status";
 import { formatTime, formatDateTime } from "@/lib/format";
@@ -37,6 +37,8 @@ const emptyForm = {
   description: "",
 };
 
+const MAX_IMAGE_MB = 2;
+
 // Total number of items in an order
 function itemCount(order) {
   return (order.items || []).reduce(
@@ -68,6 +70,95 @@ function OrderItems({ items }) {
   );
 }
 
+// File picker with a live preview. If no new file is chosen, it shows the
+// picture that is already saved (currentUrl).
+function ImagePicker({ file, currentUrl, onChange, onError }) {
+  const [preview, setPreview] = useState("");
+
+  useEffect(() => {
+    if (!file) {
+      setPreview("");
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  function handleChange(e) {
+    const f = e.target.files?.[0];
+
+    // Reset the input so choosing the same file again still triggers onChange
+    e.target.value = "";
+
+    if (!f) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+      onError("Please choose a JPG, PNG or WebP image.");
+      return;
+    }
+
+    if (f.size > MAX_IMAGE_MB * 1024 * 1024) {
+      onError(`Image must be smaller than ${MAX_IMAGE_MB} MB.`);
+      return;
+    }
+
+    onError("");
+    onChange(f);
+  }
+
+  const shown = preview || currentUrl;
+
+  return (
+    <div className="flex items-center gap-3 sm:col-span-2">
+      {shown ? (
+        <img
+          src={shown}
+          alt="Menu item preview"
+          className="h-16 w-16 rounded-lg border border-border object-cover"
+        />
+      ) : (
+        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted">
+          No image
+        </div>
+      )}
+
+      <label className="cursor-pointer rounded-full border border-border px-3 py-1.5 text-xs hover:border-pine/40">
+        {shown ? "Change picture" : "Add picture"}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={handleChange}
+          className="hidden"
+        />
+      </label>
+
+      {file && (
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="text-xs text-muted hover:underline"
+        >
+          Remove
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Menu requests that include a picture must be sent as multipart form data
+function buildMenuFormData(fields, imageFile) {
+  const fd = new FormData();
+
+  Object.entries(fields).forEach(([key, value]) => fd.append(key, value));
+
+  if (imageFile) fd.append("image", imageFile);
+
+  return fd;
+}
+
 export default function StaffDashboard() {
   const { user, loading } = useSession("staff");
 
@@ -87,9 +178,11 @@ export default function StaffDashboard() {
   const [categoryList, setCategoryList] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(emptyForm);
+  const [editImage, setEditImage] = useState(null);
   const [removingId, setRemovingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState(emptyForm);
+  const [addImage, setAddImage] = useState(null);
 
   const [feedback, setFeedback] = useState({
     count: 0,
@@ -264,8 +357,10 @@ export default function StaffDashboard() {
 
   function startEdit(item) {
     setShowAddForm(false);
+    setAddImage(null);
     setRemovingId(null);
     setEditingId(item.id);
+    setEditImage(null);
 
     setEditForm({
       name: item.name,
@@ -278,6 +373,7 @@ export default function StaffDashboard() {
 
   function cancelEdit() {
     setEditingId(null);
+    setEditImage(null);
   }
 
   async function saveEdit(id) {
@@ -287,19 +383,23 @@ export default function StaffDashboard() {
       api(`/menu/${id}`, {
         method: "PUT",
         role: "staff",
-        body: {
-          name: editForm.name.trim(),
-          category: editForm.category,
-          price: Number(editForm.price) || 0,
-          prepTime: editForm.prepTime.trim(),
-          description: editForm.description.trim(),
-        },
+        body: buildMenuFormData(
+          {
+            name: editForm.name.trim(),
+            category: editForm.category,
+            price: Number(editForm.price) || 0,
+            prepTime: editForm.prepTime.trim(),
+            description: editForm.description.trim(),
+          },
+          editImage
+        ),
       })
     );
 
     if (updated) {
       replaceItem(updated);
       setEditingId(null);
+      setEditImage(null);
     }
   }
 
@@ -338,19 +438,23 @@ export default function StaffDashboard() {
       api("/menu", {
         method: "POST",
         role: "staff",
-        body: {
-          name: addForm.name.trim(),
-          category: addForm.category || menuCategories[0],
-          price: Number(addForm.price) || 0,
-          prepTime: addForm.prepTime.trim() || "5 min",
-          description: addForm.description.trim(),
-        },
+        body: buildMenuFormData(
+          {
+            name: addForm.name.trim(),
+            category: addForm.category || menuCategories[0],
+            price: Number(addForm.price) || 0,
+            prepTime: addForm.prepTime.trim() || "5 min",
+            description: addForm.description.trim(),
+          },
+          addImage
+        ),
       })
     );
 
     if (created) {
       setItems((prev) => [...prev, created]);
       setAddForm(emptyForm);
+      setAddImage(null);
       setShowAddForm(false);
     }
   }
@@ -664,7 +768,9 @@ export default function StaffDashboard() {
                 <button
                   onClick={() => {
                     setShowAddForm((prev) => !prev);
+                    setAddImage(null);
                     setEditingId(null);
+                    setEditImage(null);
                     setRemovingId(null);
                   }}
                   className="rounded-full bg-pine px-4 py-1.5 text-sm text-paper hover:bg-pine/90"
@@ -733,6 +839,13 @@ export default function StaffDashboard() {
                       setAddForm({ ...addForm, description: e.target.value })
                     }
                     className="rounded-lg border border-border bg-paper px-3 py-2 text-sm sm:col-span-2"
+                  />
+
+                  {/* PICTURE */}
+                  <ImagePicker
+                    file={addImage}
+                    onChange={setAddImage}
+                    onError={setError}
                   />
 
                   <div className="sm:col-span-2">
@@ -820,6 +933,14 @@ export default function StaffDashboard() {
                           className="rounded-lg border border-border bg-paper px-3 py-2 text-sm sm:col-span-2"
                         />
 
+                        {/* PICTURE */}
+                        <ImagePicker
+                          file={editImage}
+                          currentUrl={imageSrc(item.image)}
+                          onChange={setEditImage}
+                          onError={setError}
+                        />
+
                         <div className="flex gap-2 sm:col-span-2">
                           <button
                             onClick={() => saveEdit(item.id)}
@@ -861,13 +982,25 @@ export default function StaffDashboard() {
                       </div>
                     ) : (
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-medium">{item.name}</p>
+                        <div className="flex items-center gap-3">
+                          {item.image ? (
+                            <img
+                              src={imageSrc(item.image)}
+                              alt={item.name}
+                              className="h-12 w-12 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-lg bg-paper" />
+                          )}
 
-                          <p className="text-sm text-muted">
-                            {item.category} · Nu. {item.price}
-                            {item.prepTime ? ` · ${item.prepTime}` : ""}
-                          </p>
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+
+                            <p className="text-sm text-muted">
+                              {item.category} · Nu. {item.price}
+                              {item.prepTime ? ` · ${item.prepTime}` : ""}
+                            </p>
+                          </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
@@ -893,6 +1026,7 @@ export default function StaffDashboard() {
                             onClick={() => {
                               setRemovingId(item.id);
                               setEditingId(null);
+                              setEditImage(null);
                             }}
                             className="rounded-full border border-border px-3 py-1 text-xs text-delayed hover:border-delayed/40"
                           >

@@ -3,6 +3,9 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
+// The backend address without "/api". Uploaded pictures are served from here.
+export const SERVER_URL = API_URL.replace(/\/api\/?$/, "");
+
 const TOKEN_KEYS = {
   customer: "cst-cafe-customer-token",
   staff: "cst-cafe-staff-token",
@@ -33,6 +36,13 @@ export function clearToken(role) {
   } catch {}
 }
 
+// Turns "/uploads/menu/abc.jpg" into "http://localhost:5000/uploads/menu/abc.jpg".
+// Full URLs (https://...) are returned unchanged, and empty values give "".
+export function imageSrc(path) {
+  if (!path) return "";
+  return /^https?:\/\//.test(path) ? path : SERVER_URL + path;
+}
+
 export class ApiError extends Error {
   constructor(status, message) {
     super(message);
@@ -43,9 +53,14 @@ export class ApiError extends Error {
 // api("/menu")                                  -> public request
 // api("/orders", { role: "customer" })          -> sends the customer's login token
 // api("/orders", { method: "POST", body: {...}, role: "customer" })
+// api("/menu", { method: "POST", body: formData, role: "staff" })  -> file upload
 export async function api(path, { method = "GET", body, role } = {}) {
   const headers = {};
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+
+  // For FormData the browser must set Content-Type itself, because it adds
+  // the multipart boundary. Setting it by hand would break the upload.
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
 
   const token = role ? getToken(role) : null;
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -55,7 +70,7 @@ export async function api(path, { method = "GET", body, role } = {}) {
     res = await fetch(API_URL + path, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, "Cannot reach the server. Make sure the backend is running.");
