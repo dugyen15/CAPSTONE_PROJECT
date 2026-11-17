@@ -76,7 +76,7 @@ export default function AdminLoginPage() {
           <div>
             <label
               htmlFor="email"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-gray-900"
             >
               Email Address
             </label>
@@ -96,7 +96,7 @@ export default function AdminLoginPage() {
           <div>
             <label
               htmlFor="password"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-gray-900"
             >
               Password
             </label>

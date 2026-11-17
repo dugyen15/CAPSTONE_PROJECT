@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getStoredTheme, applyTheme } from "@/lib/theme";
-import { clearToken } from "@/lib/api";
+import { api, clearToken } from "@/lib/api";
 
 function GearIcon({ className }) {
   return (
@@ -27,6 +28,7 @@ export default function SettingsMenu({ logoutHref = "/", role }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -39,7 +41,9 @@ export default function SettingsMenu({ logoutHref = "/", role }) {
         setOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -49,10 +53,27 @@ export default function SettingsMenu({ logoutHref = "/", role }) {
     setIsDark(next === "dark");
   }
 
-  function handleLogout() {
-    if (role) clearToken(role);
+  async function handleLogout() {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
     setOpen(false);
-    router.push(logoutHref);
+
+    try {
+      // Record logout time for staff before clearing their token.
+      if (role === "staff") {
+        await api("/staff/auth/logout", {
+          method: "POST",
+          role: "staff",
+        });
+      }
+    } catch (error) {
+      console.error("Could not record staff logout:", error);
+    } finally {
+      if (role) clearToken(role);
+
+      router.push(logoutHref);
+    }
   }
 
   return (
@@ -67,15 +88,18 @@ export default function SettingsMenu({ logoutHref = "/", role }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-paper shadow-lg z-50">
-          <div className="px-4 py-3 border-b border-border">
-            <span className="text-sm font-medium text-foreground">Settings</span>
+        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-paper shadow-lg">
+          <div className="border-b border-border px-4 py-3">
+            <span className="text-sm font-medium text-foreground">
+              Settings
+            </span>
           </div>
 
-          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
             <span className="text-sm text-foreground">
               {isDark ? "Dark mode" : "Light mode"}
             </span>
+
             <button
               type="button"
               onClick={toggleTheme}
@@ -92,7 +116,7 @@ export default function SettingsMenu({ logoutHref = "/", role }) {
           <Link
             href="/setting/privacy"
             onClick={() => setOpen(false)}
-            className="block px-4 py-3 border-b border-border text-sm text-foreground hover:bg-card transition-colors"
+            className="block border-b border-border px-4 py-3 text-sm text-foreground hover:bg-card transition-colors"
           >
             Privacy settings
           </Link>
@@ -100,9 +124,10 @@ export default function SettingsMenu({ logoutHref = "/", role }) {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full px-4 py-3 text-left text-sm text-delayed hover:bg-card transition-colors"
+            disabled={loggingOut}
+            className="w-full px-4 py-3 text-left text-sm text-delayed hover:bg-card transition-colors disabled:opacity-50"
           >
-            Log out
+            {loggingOut ? "Logging out..." : "Log out"}
           </button>
         </div>
       )}
